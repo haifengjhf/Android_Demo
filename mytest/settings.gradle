@@ -1,0 +1,3 @@
+include ':nativelib'
+include ':app'
+rootProject.name = "My Test Application"
