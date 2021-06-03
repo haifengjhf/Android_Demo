@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,11 +18,6 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-
-#if defined(__clang_analyzer__) && !defined(SDL_DISABLE_ANALYZE_MACROS)
-#define SDL_DISABLE_ANALYZE_MACROS 1
-#endif
-
 #include "../SDL_internal.h"
 
 /* This file contains portable iconv functions for SDL */
@@ -30,17 +25,14 @@
 #include "SDL_stdinc.h"
 #include "SDL_endian.h"
 
-#if defined(HAVE_ICONV) && defined(HAVE_ICONV_H)
-#include <iconv.h>
+#ifdef HAVE_ICONV
 
 /* Depending on which standard the iconv() was implemented with,
    iconv() may or may not use const char ** for the inbuf param.
    If we get this wrong, it's just a warning, so no big deal.
 */
-#if defined(_XGP6) || defined(__APPLE__) || defined(__RISCOS__) || defined(__FREEBSD__) || \
-    defined(__EMSCRIPTEN__) || \
-    (defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 2)) || \
-    (defined(_NEWLIB_VERSION)))
+#if defined(_XGP6) || defined(__APPLE__) || \
+    (defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 2)))
 #define ICONV_INBUF_NONCONST
 #endif
 
@@ -89,13 +81,13 @@ SDL_iconv(SDL_iconv_t cd,
 #else
 
 /* Lots of useful information on Unicode at:
-    http://www.cl.cam.ac.uk/~mgk25/unicode.html
+	http://www.cl.cam.ac.uk/~mgk25/unicode.html
 */
 
-#define UNICODE_BOM    0xFEFF
+#define UNICODE_BOM	0xFEFF
 
-#define UNKNOWN_ASCII    '?'
-#define UNKNOWN_UNICODE    0xFFFD
+#define UNKNOWN_ASCII	'?'
+#define UNKNOWN_UNICODE	0xFFFD
 
 enum
 {
@@ -115,13 +107,13 @@ enum
     ENCODING_UCS4LE,
 };
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-#define ENCODING_UTF16NATIVE    ENCODING_UTF16BE
-#define ENCODING_UTF32NATIVE    ENCODING_UTF32BE
+#define ENCODING_UTF16NATIVE	ENCODING_UTF16BE
+#define ENCODING_UTF32NATIVE	ENCODING_UTF32BE
 #define ENCODING_UCS2NATIVE     ENCODING_UCS2BE
 #define ENCODING_UCS4NATIVE     ENCODING_UCS4BE
 #else
-#define ENCODING_UTF16NATIVE    ENCODING_UTF16LE
-#define ENCODING_UTF32NATIVE    ENCODING_UTF32LE
+#define ENCODING_UTF16NATIVE	ENCODING_UTF16LE
+#define ENCODING_UTF32NATIVE	ENCODING_UTF32LE
 #define ENCODING_UCS2NATIVE     ENCODING_UCS2LE
 #define ENCODING_UCS4NATIVE     ENCODING_UCS4LE
 #endif
@@ -798,7 +790,6 @@ SDL_iconv(SDL_iconv_t cd,
             if (ch > 0x10FFFF) {
                 ch = UNKNOWN_UNICODE;
             }
-            /* fallthrough */
         case ENCODING_UCS4BE:
             if (ch > 0x7FFFFFFF) {
                 ch = UNKNOWN_UNICODE;
@@ -820,7 +811,6 @@ SDL_iconv(SDL_iconv_t cd,
             if (ch > 0x10FFFF) {
                 ch = UNKNOWN_UNICODE;
             }
-            /* fallthrough */
         case ENCODING_UCS4LE:
             if (ch > 0x7FFFFFFF) {
                 ch = UNKNOWN_UNICODE;
@@ -888,7 +878,7 @@ SDL_iconv_string(const char *tocode, const char *fromcode, const char *inbuf,
     }
 
     stringsize = inbytesleft > 4 ? inbytesleft : 4;
-    string = (char *) SDL_malloc(stringsize);
+    string = SDL_malloc(stringsize);
     if (!string) {
         SDL_iconv_close(cd);
         return NULL;
@@ -898,14 +888,13 @@ SDL_iconv_string(const char *tocode, const char *fromcode, const char *inbuf,
     SDL_memset(outbuf, 0, 4);
 
     while (inbytesleft > 0) {
-        const size_t oldinbytesleft = inbytesleft;
         retCode = SDL_iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
         switch (retCode) {
         case SDL_ICONV_E2BIG:
             {
                 char *oldstring = string;
                 stringsize *= 2;
-                string = (char *) SDL_realloc(string, stringsize);
+                string = SDL_realloc(string, stringsize);
                 if (!string) {
                     SDL_iconv_close(cd);
                     return NULL;
@@ -924,11 +913,6 @@ SDL_iconv_string(const char *tocode, const char *fromcode, const char *inbuf,
         case SDL_ICONV_ERROR:
             /* We can't continue... */
             inbytesleft = 0;
-            break;
-        }
-        /* Avoid infinite loops when nothing gets converted */
-        if (oldinbytesleft == inbytesleft)
-        {
             break;
         }
     }

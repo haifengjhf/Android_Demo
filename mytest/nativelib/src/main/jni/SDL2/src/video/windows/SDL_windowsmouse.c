@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,50 +22,13 @@
 
 #if SDL_VIDEO_DRIVER_WINDOWS
 
+#include "SDL_assert.h"
 #include "SDL_windowsvideo.h"
 
 #include "../../events/SDL_mouse_c.h"
 
 
 HCURSOR SDL_cursor = NULL;
-
-static int rawInputEnableCount = 0;
-
-static int 
-ToggleRawInput(SDL_bool enabled)
-{
-    RAWINPUTDEVICE rawMouse = { 0x01, 0x02, 0, NULL }; /* Mouse: UsagePage = 1, Usage = 2 */
-
-    if (enabled) {
-        rawInputEnableCount++;
-        if (rawInputEnableCount > 1) {
-            return 0;  /* already done. */
-        }
-    } else {
-        if (rawInputEnableCount == 0) {
-            return 0;  /* already done. */
-        }
-        rawInputEnableCount--;
-        if (rawInputEnableCount > 0) {
-            return 0;  /* not time to disable yet */
-        }
-    }
-
-    if (!enabled) {
-        rawMouse.dwFlags |= RIDEV_REMOVE;
-    }
-
-    /* (Un)register raw input for mice */
-    if (RegisterRawInputDevices(&rawMouse, 1, sizeof(RAWINPUTDEVICE)) == FALSE) {
-
-        /* Only return an error when registering. If we unregister and fail,
-           then it's probably that we unregistered twice. That's OK. */
-        if (enabled) {
-            return SDL_Unsupported();
-        }
-    }
-    return 0;
-}
 
 
 static SDL_Cursor *
@@ -96,7 +59,6 @@ WIN_CreateCursor(SDL_Surface * surface, int hot_x, int hot_y)
     LPVOID pixels;
     LPVOID maskbits;
     size_t maskbitslen;
-    SDL_bool isstack;
     ICONINFO ii;
 
     SDL_zero(bmh);
@@ -112,7 +74,7 @@ WIN_CreateCursor(SDL_Surface * surface, int hot_x, int hot_y)
     bmh.bV4BlueMask  = 0x000000FF;
 
     maskbitslen = ((surface->w + (pad - (surface->w % pad))) / 8) * surface->h;
-    maskbits = SDL_small_alloc(Uint8, maskbitslen, &isstack);
+    maskbits = SDL_stack_alloc(Uint8,maskbitslen);
     if (maskbits == NULL) {
         SDL_OutOfMemory();
         return NULL;
@@ -129,7 +91,7 @@ WIN_CreateCursor(SDL_Surface * surface, int hot_x, int hot_y)
     ii.hbmColor = CreateDIBSection(hdc, (BITMAPINFO*)&bmh, DIB_RGB_COLORS, &pixels, NULL, 0);
     ii.hbmMask = CreateBitmap(surface->w, surface->h, 1, 1, maskbits);
     ReleaseDC(NULL, hdc);
-    SDL_small_free(maskbits, isstack);
+    SDL_stack_free(maskbits);
 
     SDL_assert(surface->format->format == SDL_PIXELFORMAT_ARGB8888);
     SDL_assert(surface->pitch == surface->w * 4);
@@ -226,7 +188,7 @@ WIN_WarpMouse(SDL_Window * window, int x, int y)
     POINT pt;
 
     /* Don't warp the mouse while we're doing a modal interaction */
-    if (data->in_title_click || data->focus_click_pending) {
+    if (data->in_title_click || data->in_modal_loop) {
         return;
     }
 
@@ -237,57 +199,24 @@ WIN_WarpMouse(SDL_Window * window, int x, int y)
 }
 
 static int
-WIN_WarpMouseGlobal(int x, int y)
-{
-    POINT pt;
-
-    pt.x = x;
-    pt.y = y;
-    SetCursorPos(pt.x, pt.y);
-    return 0;
-}
-
-static int
 WIN_SetRelativeMouseMode(SDL_bool enabled)
 {
-    return ToggleRawInput(enabled);
-}
+    RAWINPUTDEVICE rawMouse = { 0x01, 0x02, 0, NULL }; /* Mouse: UsagePage = 1, Usage = 2 */
 
-static int
-WIN_CaptureMouse(SDL_Window *window)
-{
-    if (!window) {
-        SDL_Window *focusWin = SDL_GetKeyboardFocus();
-        if (focusWin) {
-            WIN_OnWindowEnter(SDL_GetVideoDevice(), focusWin);  /* make sure WM_MOUSELEAVE messages are (re)enabled. */
-        }
+    if (!enabled) {
+        rawMouse.dwFlags |= RIDEV_REMOVE;
     }
 
-    /* While we were thinking of SetCapture() when designing this API in SDL,
-       we didn't count on the fact that SetCapture() only tracks while the
-       left mouse button is held down! Instead, we listen for raw mouse input
-       and manually query the mouse when it leaves the window. :/ */
-    return ToggleRawInput(window != NULL);
-}
+    /* (Un)register raw input for mice */
+    if (RegisterRawInputDevices(&rawMouse, 1, sizeof(RAWINPUTDEVICE)) == FALSE) {
 
-static Uint32
-WIN_GetGlobalMouseState(int *x, int *y)
-{
-    Uint32 retval = 0;
-    POINT pt = { 0, 0 };
-    SDL_bool swapButtons = GetSystemMetrics(SM_SWAPBUTTON) != 0;
-
-    GetCursorPos(&pt);
-    *x = (int) pt.x;
-    *y = (int) pt.y;
-
-    retval |= GetAsyncKeyState(!swapButtons ? VK_LBUTTON : VK_RBUTTON) & 0x8000 ? SDL_BUTTON_LMASK : 0;
-    retval |= GetAsyncKeyState(!swapButtons ? VK_RBUTTON : VK_LBUTTON) & 0x8000 ? SDL_BUTTON_RMASK : 0;
-    retval |= GetAsyncKeyState(VK_MBUTTON) & 0x8000 ? SDL_BUTTON_MMASK : 0;
-    retval |= GetAsyncKeyState(VK_XBUTTON1) & 0x8000 ? SDL_BUTTON_X1MASK : 0;
-    retval |= GetAsyncKeyState(VK_XBUTTON2) & 0x8000 ? SDL_BUTTON_X2MASK : 0;
-
-    return retval;
+        /* Only return an error when registering. If we unregister and fail,
+           then it's probably that we unregistered twice. That's OK. */
+        if (enabled) {
+            return SDL_Unsupported();
+        }
+    }
+    return 0;
 }
 
 void
@@ -300,20 +229,21 @@ WIN_InitMouse(_THIS)
     mouse->ShowCursor = WIN_ShowCursor;
     mouse->FreeCursor = WIN_FreeCursor;
     mouse->WarpMouse = WIN_WarpMouse;
-    mouse->WarpMouseGlobal = WIN_WarpMouseGlobal;
     mouse->SetRelativeMouseMode = WIN_SetRelativeMouseMode;
-    mouse->CaptureMouse = WIN_CaptureMouse;
-    mouse->GetGlobalMouseState = WIN_GetGlobalMouseState;
 
     SDL_SetDefaultCursor(WIN_CreateDefaultCursor());
+
+    SDL_SetDoubleClickTime(GetDoubleClickTime());
 }
 
 void
 WIN_QuitMouse(_THIS)
 {
-    if (rawInputEnableCount) {  /* force RAWINPUT off here. */
-        rawInputEnableCount = 1;
-        ToggleRawInput(SDL_FALSE);
+    SDL_Mouse *mouse = SDL_GetMouse();
+    if ( mouse->def_cursor ) {
+        SDL_free(mouse->def_cursor);
+        mouse->def_cursor = NULL;
+        mouse->cur_cursor = NULL;
     }
 }
 

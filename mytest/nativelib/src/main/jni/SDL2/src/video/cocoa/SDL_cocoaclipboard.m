@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,32 +25,50 @@
 #include "SDL_cocoavideo.h"
 #include "../../events/SDL_clipboardevents_c.h"
 
-int
-Cocoa_SetClipboardText(_THIS, const char *text)
-{ @autoreleasepool
+static NSString *
+GetTextFormat(_THIS)
 {
     SDL_VideoData *data = (SDL_VideoData *) _this->driverdata;
+
+    if (data->osversion >= 0x1060) {
+        return NSPasteboardTypeString;
+    } else {
+        return NSStringPboardType;
+    }
+}
+
+int
+Cocoa_SetClipboardText(_THIS, const char *text)
+{
+    SDL_VideoData *data = (SDL_VideoData *) _this->driverdata;
+    NSAutoreleasePool *pool;
     NSPasteboard *pasteboard;
-    NSString *format = NSPasteboardTypeString;
+    NSString *format = GetTextFormat(_this);
+
+    pool = [[NSAutoreleasePool alloc] init];
 
     pasteboard = [NSPasteboard generalPasteboard];
     data->clipboard_count = [pasteboard declareTypes:[NSArray arrayWithObject:format] owner:nil];
     [pasteboard setString:[NSString stringWithUTF8String:text] forType:format];
 
+    [pool release];
+
     return 0;
-}}
+}
 
 char *
 Cocoa_GetClipboardText(_THIS)
-{ @autoreleasepool
 {
+    NSAutoreleasePool *pool;
     NSPasteboard *pasteboard;
-    NSString *format = NSPasteboardTypeString;
+    NSString *format = GetTextFormat(_this);
     NSString *available;
     char *text;
 
+    pool = [[NSAutoreleasePool alloc] init];
+
     pasteboard = [NSPasteboard generalPasteboard];
-    available = [pasteboard availableTypeFromArray:[NSArray arrayWithObject:format]];
+    available = [pasteboard availableTypeFromArray: [NSArray arrayWithObject:format]];
     if ([available isEqualToString:format]) {
         NSString* string;
         const char *utf8;
@@ -66,8 +84,10 @@ Cocoa_GetClipboardText(_THIS)
         text = SDL_strdup("");
     }
 
+    [pool release];
+
     return text;
-}}
+}
 
 SDL_bool
 Cocoa_HasClipboardText(_THIS)
@@ -76,17 +96,19 @@ Cocoa_HasClipboardText(_THIS)
     char *text = Cocoa_GetClipboardText(_this);
     if (text) {
         result = text[0] != '\0' ? SDL_TRUE : SDL_FALSE;
-        SDL_free(text);
+    SDL_free(text);
     }
     return result;
 }
 
 void
 Cocoa_CheckClipboardUpdate(struct SDL_VideoData * data)
-{ @autoreleasepool
 {
+    NSAutoreleasePool *pool;
     NSPasteboard *pasteboard;
     NSInteger count;
+
+    pool = [[NSAutoreleasePool alloc] init];
 
     pasteboard = [NSPasteboard generalPasteboard];
     count = [pasteboard changeCount];
@@ -96,7 +118,9 @@ Cocoa_CheckClipboardUpdate(struct SDL_VideoData * data)
         }
         data->clipboard_count = count;
     }
-}}
+
+    [pool release];
+}
 
 #endif /* SDL_VIDEO_DRIVER_COCOA */
 

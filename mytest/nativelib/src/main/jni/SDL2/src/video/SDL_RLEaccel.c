@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,14 +20,12 @@
 */
 #include "../SDL_internal.h"
 
-#if SDL_HAVE_RLE
-
 /*
  * RLE encoding for software colorkey and alpha-channel acceleration
  *
  * Original version by Sam Lantinga
  *
- * Mattias EngdegÃ¥rd (Yorick): Rewrite. New encoding format, encoder and
+ * Mattias Engdegård (Yorick): Rewrite. New encoding format, encoder and
  * decoder. Added per-surface alpha blitter. Added per-pixel alpha
  * format, encoder and blitter.
  *
@@ -92,6 +90,9 @@
 #include "SDL_blit.h"
 #include "SDL_RLEaccel_c.h"
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
@@ -114,22 +115,22 @@
  * This can be used for any RGB permutation of course.
  */
 #define ALPHA_BLIT32_888(to, from, length, bpp, alpha)      \
-    do {                                                    \
-        int i;                                              \
-        Uint32 *src = (Uint32 *)(from);                     \
-        Uint32 *dst = (Uint32 *)(to);                       \
-        for (i = 0; i < (int)(length); i++) {               \
-            Uint32 s = *src++;                              \
-            Uint32 d = *dst;                                \
-            Uint32 s1 = s & 0xff00ff;                       \
-            Uint32 d1 = d & 0xff00ff;                       \
-            d1 = (d1 + ((s1 - d1) * alpha >> 8)) & 0xff00ff; \
-            s &= 0xff00;                                    \
-            d &= 0xff00;                                    \
-            d = (d + ((s - d) * alpha >> 8)) & 0xff00;      \
-            *dst++ = d1 | d;                                \
-        }                                                   \
-    } while (0)
+    do {                            \
+        int i;                          \
+    Uint32 *src = (Uint32 *)(from);             \
+    Uint32 *dst = (Uint32 *)(to);               \
+    for(i = 0; i < (int)(length); i++) {            \
+        Uint32 s = *src++;                  \
+        Uint32 d = *dst;                    \
+        Uint32 s1 = s & 0xff00ff;               \
+        Uint32 d1 = d & 0xff00ff;               \
+        d1 = (d1 + ((s1 - d1) * alpha >> 8)) & 0xff00ff;    \
+        s &= 0xff00;                    \
+        d &= 0xff00;                    \
+        d = (d + ((s - d) * alpha >> 8)) & 0xff00;      \
+        *dst++ = d1 | d;                    \
+    }                           \
+    } while(0)
 
 /*
  * For 16bpp pixels we can go a step further: put the middle component
@@ -138,97 +139,97 @@
  * 5 bits, we have to scale alpha down to 5 bits as well.
  */
 #define ALPHA_BLIT16_565(to, from, length, bpp, alpha)  \
-    do {                                                \
-        int i;                                          \
-        Uint16 *src = (Uint16 *)(from);                 \
-        Uint16 *dst = (Uint16 *)(to);                   \
-        Uint32 ALPHA = alpha >> 3;                      \
-        for(i = 0; i < (int)(length); i++) {            \
-            Uint32 s = *src++;                          \
-            Uint32 d = *dst;                            \
-            s = (s | s << 16) & 0x07e0f81f;             \
-            d = (d | d << 16) & 0x07e0f81f;             \
-            d += (s - d) * ALPHA >> 5;                  \
-            d &= 0x07e0f81f;                            \
-            *dst++ = (Uint16)(d | d >> 16);             \
-        }                                               \
+    do {                        \
+        int i;                      \
+    Uint16 *src = (Uint16 *)(from);         \
+    Uint16 *dst = (Uint16 *)(to);           \
+    Uint32 ALPHA = alpha >> 3;          \
+    for(i = 0; i < (int)(length); i++) {        \
+        Uint32 s = *src++;              \
+        Uint32 d = *dst;                \
+        s = (s | s << 16) & 0x07e0f81f;     \
+        d = (d | d << 16) & 0x07e0f81f;     \
+        d += (s - d) * ALPHA >> 5;          \
+        d &= 0x07e0f81f;                \
+        *dst++ = (Uint16)(d | d >> 16);         \
+    }                       \
     } while(0)
 
 #define ALPHA_BLIT16_555(to, from, length, bpp, alpha)  \
-    do {                                                \
-        int i;                                          \
-        Uint16 *src = (Uint16 *)(from);                 \
-        Uint16 *dst = (Uint16 *)(to);                   \
-        Uint32 ALPHA = alpha >> 3;                      \
-        for(i = 0; i < (int)(length); i++) {            \
-            Uint32 s = *src++;                          \
-            Uint32 d = *dst;                            \
-            s = (s | s << 16) & 0x03e07c1f;             \
-            d = (d | d << 16) & 0x03e07c1f;             \
-            d += (s - d) * ALPHA >> 5;                  \
-            d &= 0x03e07c1f;                            \
-            *dst++ = (Uint16)(d | d >> 16);             \
-        }                                               \
+    do {                        \
+        int i;                      \
+    Uint16 *src = (Uint16 *)(from);         \
+    Uint16 *dst = (Uint16 *)(to);           \
+    Uint32 ALPHA = alpha >> 3;          \
+    for(i = 0; i < (int)(length); i++) {        \
+        Uint32 s = *src++;              \
+        Uint32 d = *dst;                \
+        s = (s | s << 16) & 0x03e07c1f;     \
+        d = (d | d << 16) & 0x03e07c1f;     \
+        d += (s - d) * ALPHA >> 5;          \
+        d &= 0x03e07c1f;                \
+        *dst++ = (Uint16)(d | d >> 16);         \
+    }                       \
     } while(0)
 
 /*
  * The general slow catch-all function, for remaining depths and formats
  */
 #define ALPHA_BLIT_ANY(to, from, length, bpp, alpha)            \
-    do {                                                        \
-        int i;                                                  \
-        Uint8 *src = from;                                      \
-        Uint8 *dst = to;                                        \
-        for (i = 0; i < (int)(length); i++) {                   \
-            Uint32 s, d;                                        \
-            unsigned rs, gs, bs, rd, gd, bd;                    \
-            switch (bpp) {                                      \
-            case 2:                                             \
-                s = *(Uint16 *)src;                             \
-                d = *(Uint16 *)dst;                             \
-                break;                                          \
-            case 3:                                             \
-                if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {          \
-                    s = (src[0] << 16) | (src[1] << 8) | src[2]; \
-                    d = (dst[0] << 16) | (dst[1] << 8) | dst[2]; \
-                } else {                                        \
-                    s = (src[2] << 16) | (src[1] << 8) | src[0]; \
-                    d = (dst[2] << 16) | (dst[1] << 8) | dst[0]; \
-                }                                               \
-                break;                                          \
-            case 4:                                             \
-                s = *(Uint32 *)src;                             \
-                d = *(Uint32 *)dst;                             \
-                break;                                          \
-            }                                                   \
-            RGB_FROM_PIXEL(s, fmt, rs, gs, bs);                 \
-            RGB_FROM_PIXEL(d, fmt, rd, gd, bd);                 \
-            rd += (rs - rd) * alpha >> 8;                       \
-            gd += (gs - gd) * alpha >> 8;                       \
-            bd += (bs - bd) * alpha >> 8;                       \
-            PIXEL_FROM_RGB(d, fmt, rd, gd, bd);                 \
-            switch (bpp) {                                      \
-            case 2:                                             \
-                *(Uint16 *)dst = (Uint16)d;                     \
-                break;                                          \
-            case 3:                                             \
-                if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {          \
-                    dst[0] = (Uint8)(d >> 16);                  \
-                    dst[1] = (Uint8)(d >> 8);                   \
-                    dst[2] = (Uint8)(d);                        \
-                } else {                                        \
-                    dst[0] = (Uint8)d;                          \
-                    dst[1] = (Uint8)(d >> 8);                   \
-                    dst[2] = (Uint8)(d >> 16);                  \
-                }                                               \
-                break;                                          \
-            case 4:                                             \
-                *(Uint32 *)dst = d;                             \
-                break;                                          \
-            }                                                   \
-            src += bpp;                                         \
-            dst += bpp;                                         \
-        }                                                       \
+    do {                                \
+        int i;                              \
+    Uint8 *src = from;                      \
+    Uint8 *dst = to;                        \
+    for(i = 0; i < (int)(length); i++) {                \
+        Uint32 s, d;                        \
+        unsigned rs, gs, bs, rd, gd, bd;                \
+        switch(bpp) {                       \
+        case 2:                         \
+        s = *(Uint16 *)src;                 \
+        d = *(Uint16 *)dst;                 \
+        break;                          \
+        case 3:                         \
+        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {           \
+            s = (src[0] << 16) | (src[1] << 8) | src[2];    \
+            d = (dst[0] << 16) | (dst[1] << 8) | dst[2];    \
+        } else {                        \
+            s = (src[2] << 16) | (src[1] << 8) | src[0];    \
+            d = (dst[2] << 16) | (dst[1] << 8) | dst[0];    \
+        }                           \
+        break;                          \
+        case 4:                         \
+        s = *(Uint32 *)src;                 \
+        d = *(Uint32 *)dst;                 \
+        break;                          \
+        }                               \
+        RGB_FROM_PIXEL(s, fmt, rs, gs, bs);             \
+        RGB_FROM_PIXEL(d, fmt, rd, gd, bd);             \
+        rd += (rs - rd) * alpha >> 8;               \
+        gd += (gs - gd) * alpha >> 8;               \
+        bd += (bs - bd) * alpha >> 8;               \
+        PIXEL_FROM_RGB(d, fmt, rd, gd, bd);             \
+        switch(bpp) {                       \
+        case 2:                         \
+        *(Uint16 *)dst = (Uint16)d;                 \
+        break;                          \
+        case 3:                         \
+        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {           \
+            dst[0] = (Uint8)(d >> 16);                  \
+            dst[1] = (Uint8)(d >> 8);                   \
+            dst[2] = (Uint8)(d);                        \
+        } else {                        \
+            dst[0] = (Uint8)d;                      \
+            dst[1] = (Uint8)(d >> 8);                   \
+            dst[2] = (Uint8)(d >> 16);                  \
+        }                           \
+        break;                          \
+        case 4:                         \
+        *(Uint32 *)dst = d;                 \
+        break;                          \
+        }                               \
+        src += bpp;                         \
+        dst += bpp;                         \
+    }                               \
     } while(0)
 
 /*
@@ -240,16 +241,16 @@
  * add them. Then shift right and add the sum of the lowest bits.
  */
 #define ALPHA_BLIT32_888_50(to, from, length, bpp, alpha)       \
-    do {                                                        \
-        int i;                                                  \
-        Uint32 *src = (Uint32 *)(from);                         \
-        Uint32 *dst = (Uint32 *)(to);                           \
-        for(i = 0; i < (int)(length); i++) {                    \
-            Uint32 s = *src++;                                  \
-            Uint32 d = *dst;                                    \
-            *dst++ = (((s & 0x00fefefe) + (d & 0x00fefefe)) >> 1) \
-                 + (s & d & 0x00010101);                        \
-        }                                                       \
+    do {                                \
+        int i;                              \
+    Uint32 *src = (Uint32 *)(from);                 \
+    Uint32 *dst = (Uint32 *)(to);                   \
+    for(i = 0; i < (int)(length); i++) {                \
+        Uint32 s = *src++;                      \
+        Uint32 d = *dst;                        \
+        *dst++ = (((s & 0x00fefefe) + (d & 0x00fefefe)) >> 1)   \
+             + (s & d & 0x00010101);                \
+    }                               \
     } while(0)
 
 /*
@@ -258,185 +259,170 @@
  */
 
 /* helper: blend a single 16 bit pixel at 50% */
-#define BLEND16_50(dst, src, mask)                              \
-    do {                                                        \
-        Uint32 s = *src++;                                      \
-        Uint32 d = *dst;                                        \
-        *dst++ = (Uint16)((((s & mask) + (d & mask)) >> 1) +    \
-                          (s & d & (~mask & 0xffff)));          \
+#define BLEND16_50(dst, src, mask)          \
+    do {                        \
+    Uint32 s = *src++;              \
+    Uint32 d = *dst;                \
+    *dst++ = (Uint16)((((s & mask) + (d & mask)) >> 1) +    \
+                      (s & d & (~mask & 0xffff)));      \
     } while(0)
 
 /* basic 16bpp blender. mask is the pixels to keep when adding. */
 #define ALPHA_BLIT16_50(to, from, length, bpp, alpha, mask)     \
-    do {                                                        \
-        unsigned n = (length);                                  \
-        Uint16 *src = (Uint16 *)(from);                         \
-        Uint16 *dst = (Uint16 *)(to);                           \
-        if (((uintptr_t)src ^ (uintptr_t)dst) & 3) {            \
-            /* source and destination not in phase, blit one by one */ \
-            while (n--)                                         \
-                BLEND16_50(dst, src, mask);                     \
-        } else {                                                \
-            if ((uintptr_t)src & 3) {                           \
-                /* first odd pixel */                           \
-                BLEND16_50(dst, src, mask);                     \
-                n--;                                            \
-            }                                                   \
-            for (; n > 1; n -= 2) {                             \
-                Uint32 s = *(Uint32 *)src;                      \
-                Uint32 d = *(Uint32 *)dst;                      \
-                *(Uint32 *)dst = ((s & (mask | mask << 16)) >> 1) \
-                    + ((d & (mask | mask << 16)) >> 1)          \
-                    + (s & d & (~(mask | mask << 16)));         \
-                src += 2;                                       \
-                dst += 2;                                       \
-            }                                                   \
-            if (n)                                              \
-                BLEND16_50(dst, src, mask); /* last odd pixel */ \
-        }                                                       \
+    do {                                \
+    unsigned n = (length);                      \
+    Uint16 *src = (Uint16 *)(from);                 \
+    Uint16 *dst = (Uint16 *)(to);                   \
+    if(((uintptr_t)src ^ (uintptr_t)dst) & 3) {         \
+        /* source and destination not in phase, blit one by one */  \
+        while(n--)                          \
+        BLEND16_50(dst, src, mask);             \
+    } else {                            \
+        if((uintptr_t)src & 3) {                    \
+        /* first odd pixel */                   \
+        BLEND16_50(dst, src, mask);             \
+        n--;                            \
+        }                               \
+        for(; n > 1; n -= 2) {                  \
+        Uint32 s = *(Uint32 *)src;              \
+        Uint32 d = *(Uint32 *)dst;              \
+        *(Uint32 *)dst = ((s & (mask | mask << 16)) >> 1)   \
+                       + ((d & (mask | mask << 16)) >> 1)   \
+                       + (s & d & (~(mask | mask << 16)));  \
+        src += 2;                       \
+        dst += 2;                       \
+        }                               \
+        if(n)                           \
+        BLEND16_50(dst, src, mask); /* last odd pixel */    \
+    }                               \
     } while(0)
 
-#define ALPHA_BLIT16_565_50(to, from, length, bpp, alpha)       \
-    ALPHA_BLIT16_50(to, from, length, bpp, alpha, 0xf7deU)
+#define ALPHA_BLIT16_565_50(to, from, length, bpp, alpha)   \
+    ALPHA_BLIT16_50(to, from, length, bpp, alpha, 0xf7de)
 
-#define ALPHA_BLIT16_555_50(to, from, length, bpp, alpha)       \
-    ALPHA_BLIT16_50(to, from, length, bpp, alpha, 0xfbdeU)
+#define ALPHA_BLIT16_555_50(to, from, length, bpp, alpha)   \
+    ALPHA_BLIT16_50(to, from, length, bpp, alpha, 0xfbde)
 
-#define CHOOSE_BLIT(blitter, alpha, fmt)                        \
-    do {                                                        \
-        if (alpha == 255) {                                     \
-            switch (fmt->BytesPerPixel) {                       \
-            case 1: blitter(1, Uint8, OPAQUE_BLIT); break;      \
-            case 2: blitter(2, Uint8, OPAQUE_BLIT); break;      \
-            case 3: blitter(3, Uint8, OPAQUE_BLIT); break;      \
-            case 4: blitter(4, Uint16, OPAQUE_BLIT); break;     \
-            }                                                   \
-        } else {                                                \
-            switch (fmt->BytesPerPixel) {                       \
-            case 1:                                             \
-                /* No 8bpp alpha blitting */                    \
-                break;                                          \
-                                                                \
-            case 2:                                             \
-                switch (fmt->Rmask | fmt->Gmask | fmt->Bmask) { \
-                case 0xffff:                                    \
-                    if (fmt->Gmask == 0x07e0                    \
-                        || fmt->Rmask == 0x07e0                 \
-                        || fmt->Bmask == 0x07e0) {              \
-                        if (alpha == 128) {                     \
-                            blitter(2, Uint8, ALPHA_BLIT16_565_50); \
-                        } else {                                \
-                            blitter(2, Uint8, ALPHA_BLIT16_565); \
-                        }                                       \
-                    } else                                      \
-                        goto general16;                         \
-                    break;                                      \
-                                                                \
-                case 0x7fff:                                    \
-                    if (fmt->Gmask == 0x03e0                    \
-                        || fmt->Rmask == 0x03e0                 \
-                        || fmt->Bmask == 0x03e0) {              \
-                        if (alpha == 128) {                     \
-                            blitter(2, Uint8, ALPHA_BLIT16_555_50); \
-                        } else {                                \
-                            blitter(2, Uint8, ALPHA_BLIT16_555); \
-                        }                                       \
-                        break;                                  \
-                    } else                                      \
-                        goto general16;                         \
-                    break;                                      \
-                                                                \
-                default:                                        \
-    general16:                                                  \
-                    blitter(2, Uint8, ALPHA_BLIT_ANY);          \
-                }                                               \
-                break;                                          \
-                                                                \
-            case 3:                                             \
-                blitter(3, Uint8, ALPHA_BLIT_ANY);              \
-                break;                                          \
-                                                                \
-            case 4:                                             \
-                if ((fmt->Rmask | fmt->Gmask | fmt->Bmask) == 0x00ffffff \
-                    && (fmt->Gmask == 0xff00 || fmt->Rmask == 0xff00 \
-                    || fmt->Bmask == 0xff00)) {                 \
-                    if (alpha == 128) {                         \
-                        blitter(4, Uint16, ALPHA_BLIT32_888_50); \
-                    } else {                                    \
-                        blitter(4, Uint16, ALPHA_BLIT32_888);   \
-                    }                                           \
-                } else                                          \
-                    blitter(4, Uint16, ALPHA_BLIT_ANY);         \
-                break;                                          \
-            }                                                   \
-        }                                                       \
+#define CHOOSE_BLIT(blitter, alpha, fmt)                \
+    do {                                \
+        if(alpha == 255) {                      \
+        switch(fmt->BytesPerPixel) {                \
+        case 1: blitter(1, Uint8, OPAQUE_BLIT); break;      \
+        case 2: blitter(2, Uint8, OPAQUE_BLIT); break;      \
+        case 3: blitter(3, Uint8, OPAQUE_BLIT); break;      \
+        case 4: blitter(4, Uint16, OPAQUE_BLIT); break;     \
+        }                               \
+    } else {                            \
+        switch(fmt->BytesPerPixel) {                \
+        case 1:                         \
+        /* No 8bpp alpha blitting */                \
+        break;                          \
+                                    \
+        case 2:                         \
+        switch(fmt->Rmask | fmt->Gmask | fmt->Bmask) {      \
+        case 0xffff:                        \
+            if(fmt->Gmask == 0x07e0             \
+               || fmt->Rmask == 0x07e0              \
+               || fmt->Bmask == 0x07e0) {           \
+            if(alpha == 128)                \
+                blitter(2, Uint8, ALPHA_BLIT16_565_50); \
+            else {                      \
+                blitter(2, Uint8, ALPHA_BLIT16_565);    \
+            }                       \
+            } else                      \
+            goto general16;                 \
+            break;                      \
+                                    \
+        case 0x7fff:                        \
+            if(fmt->Gmask == 0x03e0             \
+               || fmt->Rmask == 0x03e0              \
+               || fmt->Bmask == 0x03e0) {           \
+            if(alpha == 128)                \
+                blitter(2, Uint8, ALPHA_BLIT16_555_50); \
+            else {                      \
+                blitter(2, Uint8, ALPHA_BLIT16_555);    \
+            }                       \
+            break;                      \
+            }                           \
+            /* fallthrough */                   \
+                                    \
+        default:                        \
+        general16:                      \
+            blitter(2, Uint8, ALPHA_BLIT_ANY);          \
+        }                           \
+        break;                          \
+                                    \
+        case 3:                         \
+        blitter(3, Uint8, ALPHA_BLIT_ANY);          \
+        break;                          \
+                                    \
+        case 4:                         \
+        if((fmt->Rmask | fmt->Gmask | fmt->Bmask) == 0x00ffffff \
+           && (fmt->Gmask == 0xff00 || fmt->Rmask == 0xff00 \
+               || fmt->Bmask == 0xff00)) {          \
+            if(alpha == 128)                    \
+            blitter(4, Uint16, ALPHA_BLIT32_888_50);    \
+            else                        \
+            blitter(4, Uint16, ALPHA_BLIT32_888);       \
+        } else                          \
+            blitter(4, Uint16, ALPHA_BLIT_ANY);         \
+        break;                          \
+        }                               \
+    }                               \
     } while(0)
-
-/*
- * Set a pixel value using the given format, except that the alpha value is
- * placed in the top byte. This is the format used for RLE with alpha.
- */
-#define RLEPIXEL_FROM_RGBA(Pixel, fmt, r, g, b, a)                      \
-{                                                                       \
-    Pixel = ((r>>fmt->Rloss)<<fmt->Rshift)|                             \
-        ((g>>fmt->Gloss)<<fmt->Gshift)|                                 \
-        ((b>>fmt->Bloss)<<fmt->Bshift)|                                 \
-        (a<<24);                                                        \
-}
 
 /*
  * This takes care of the case when the surface is clipped on the left and/or
  * right. Top clipping has already been taken care of.
  */
 static void
-RLEClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
+RLEClipBlit(int w, Uint8 * srcbuf, SDL_Surface * dst,
             Uint8 * dstbuf, SDL_Rect * srcrect, unsigned alpha)
 {
-    SDL_PixelFormat *fmt = surf_dst->format;
+    SDL_PixelFormat *fmt = dst->format;
 
-#define RLECLIPBLIT(bpp, Type, do_blit)                         \
-    do {                                                        \
-        int linecount = srcrect->h;                             \
-        int ofs = 0;                                            \
-        int left = srcrect->x;                                  \
-        int right = left + srcrect->w;                          \
-        dstbuf -= left * bpp;                                   \
-        for (;;) {                                              \
-            int run;                                            \
-            ofs += *(Type *)srcbuf;                             \
-            run = ((Type *)srcbuf)[1];                          \
-            srcbuf += 2 * sizeof(Type);                         \
-            if (run) {                                          \
-                /* clip to left and right borders */            \
-                if (ofs < right) {                              \
-                    int start = 0;                              \
-                    int len = run;                              \
-                    int startcol;                               \
-                    if (left - ofs > 0) {                       \
-                        start = left - ofs;                     \
-                        len -= start;                           \
-                        if (len <= 0)                           \
-                            goto nocopy ## bpp ## do_blit;      \
-                    }                                           \
-                    startcol = ofs + start;                     \
-                    if (len > right - startcol)                 \
-                        len = right - startcol;                 \
-                    do_blit(dstbuf + startcol * bpp, srcbuf + start * bpp, \
-                        len, bpp, alpha);                       \
-                }                                               \
-    nocopy ## bpp ## do_blit:                                   \
-                srcbuf += run * bpp;                            \
-                ofs += run;                                     \
-            } else if (!ofs)                                    \
-                break;                                          \
-                                                                \
-            if (ofs == w) {                                     \
-                ofs = 0;                                        \
-                dstbuf += surf_dst->pitch;                      \
-                if (!--linecount)                               \
-                    break;                                      \
-            }                                                   \
-        }                                                       \
+#define RLECLIPBLIT(bpp, Type, do_blit)                    \
+    do {                                   \
+    int linecount = srcrect->h;                    \
+    int ofs = 0;                               \
+    int left = srcrect->x;                         \
+    int right = left + srcrect->w;                     \
+    dstbuf -= left * bpp;                          \
+    for(;;) {                              \
+        int run;                               \
+        ofs += *(Type *)srcbuf;                    \
+        run = ((Type *)srcbuf)[1];                     \
+        srcbuf += 2 * sizeof(Type);                    \
+        if(run) {                              \
+        /* clip to left and right borders */               \
+        if(ofs < right) {                      \
+            int start = 0;                     \
+            int len = run;                     \
+            int startcol;                      \
+            if(left - ofs > 0) {                   \
+            start = left - ofs;                \
+            len -= start;                      \
+            if(len <= 0)                       \
+                goto nocopy ## bpp ## do_blit;         \
+            }                              \
+            startcol = ofs + start;                \
+            if(len > right - startcol)                 \
+            len = right - startcol;                \
+            do_blit(dstbuf + startcol * bpp, srcbuf + start * bpp, \
+                len, bpp, alpha);                  \
+        }                              \
+        nocopy ## bpp ## do_blit:                      \
+        srcbuf += run * bpp;                       \
+        ofs += run;                        \
+        } else if(!ofs)                        \
+        break;                             \
+        if(ofs == w) {                         \
+        ofs = 0;                           \
+        dstbuf += dst->pitch;                      \
+        if(!--linecount)                       \
+            break;                         \
+        }                                  \
+    }                                  \
     } while(0)
 
     CHOOSE_BLIT(RLECLIPBLIT, alpha, fmt);
@@ -447,19 +433,19 @@ RLEClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
 
 
 /* blit a colorkeyed RLE surface */
-static int SDLCALL
-SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
-            SDL_Surface * surf_dst, SDL_Rect * dstrect)
+int
+SDL_RLEBlit(SDL_Surface * src, SDL_Rect * srcrect,
+            SDL_Surface * dst, SDL_Rect * dstrect)
 {
     Uint8 *dstbuf;
     Uint8 *srcbuf;
     int x, y;
-    int w = surf_src->w;
+    int w = src->w;
     unsigned alpha;
 
     /* Lock the destination if necessary */
-    if (SDL_MUSTLOCK(surf_dst)) {
-        if (SDL_LockSurface(surf_dst) < 0) {
+    if (SDL_MUSTLOCK(dst)) {
+        if (SDL_LockSurface(dst) < 0) {
             return (-1);
         }
     }
@@ -467,9 +453,9 @@ SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
     /* Set up the source and destination pointers */
     x = dstrect->x;
     y = dstrect->y;
-    dstbuf = (Uint8 *) surf_dst->pixels
-        + y * surf_dst->pitch + x * surf_src->format->BytesPerPixel;
-    srcbuf = (Uint8 *) surf_src->map->data;
+    dstbuf = (Uint8 *) dst->pixels
+        + y * dst->pitch + x * src->format->BytesPerPixel;
+    srcbuf = (Uint8 *) src->map->data;
 
     {
         /* skip lines at the top if necessary */
@@ -495,7 +481,7 @@ SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
             }               \
         }
 
-            switch (surf_src->format->BytesPerPixel) {
+            switch (src->format->BytesPerPixel) {
             case 1:
                 RLESKIP(1, Uint8);
                 break;
@@ -515,12 +501,12 @@ SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
         }
     }
 
-    alpha = surf_src->map->info.a;
+    alpha = src->map->info.a;
     /* if left or right edge clipping needed, call clip blit */
-    if (srcrect->x || srcrect->w != surf_src->w) {
-        RLEClipBlit(w, srcbuf, surf_dst, dstbuf, srcrect, alpha);
+    if (srcrect->x || srcrect->w != src->w) {
+        RLEClipBlit(w, srcbuf, dst, dstbuf, srcrect, alpha);
     } else {
-        SDL_PixelFormat *fmt = surf_src->format;
+        SDL_PixelFormat *fmt = src->format;
 
 #define RLEBLIT(bpp, Type, do_blit)                       \
         do {                                  \
@@ -539,7 +525,7 @@ SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
             break;                            \
             if(ofs == w) {                        \
             ofs = 0;                          \
-            dstbuf += surf_dst->pitch;                     \
+            dstbuf += dst->pitch;                     \
             if(!--linecount)                      \
                 break;                        \
             }                                 \
@@ -553,8 +539,8 @@ SDL_RLEBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
 
   done:
     /* Unlock the destination if necessary */
-    if (SDL_MUSTLOCK(surf_dst)) {
-        SDL_UnlockSurface(surf_dst);
+    if (SDL_MUSTLOCK(dst)) {
+        SDL_UnlockSurface(dst);
     }
     return (0);
 }
@@ -634,10 +620,10 @@ typedef struct
 
 /* blit a pixel-alpha RLE surface clipped at the right and/or left edges */
 static void
-RLEAlphaClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
+RLEAlphaClipBlit(int w, Uint8 * srcbuf, SDL_Surface * dst,
                  Uint8 * dstbuf, SDL_Rect * srcrect)
 {
-    SDL_PixelFormat *df = surf_dst->format;
+    SDL_PixelFormat *df = dst->format;
     /*
      * clipped blitter: Ptype is the destination pixel type,
      * Ctype the translucent count type, and do_blend the macro
@@ -707,7 +693,7 @@ RLEAlphaClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
             ofs += run;                       \
         }                             \
         } while(ofs < w);                         \
-        dstbuf += surf_dst->pitch;                     \
+        dstbuf += dst->pitch;                     \
     } while(--linecount);                         \
     } while(0)
 
@@ -725,26 +711,26 @@ RLEAlphaClipBlit(int w, Uint8 * srcbuf, SDL_Surface * surf_dst,
 }
 
 /* blit a pixel-alpha RLE surface */
-static int SDLCALL
-SDL_RLEAlphaBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
-                 SDL_Surface * surf_dst, SDL_Rect * dstrect)
+int
+SDL_RLEAlphaBlit(SDL_Surface * src, SDL_Rect * srcrect,
+                 SDL_Surface * dst, SDL_Rect * dstrect)
 {
     int x, y;
-    int w = surf_src->w;
+    int w = src->w;
     Uint8 *srcbuf, *dstbuf;
-    SDL_PixelFormat *df = surf_dst->format;
+    SDL_PixelFormat *df = dst->format;
 
     /* Lock the destination if necessary */
-    if (SDL_MUSTLOCK(surf_dst)) {
-        if (SDL_LockSurface(surf_dst) < 0) {
+    if (SDL_MUSTLOCK(dst)) {
+        if (SDL_LockSurface(dst) < 0) {
             return -1;
         }
     }
 
     x = dstrect->x;
     y = dstrect->y;
-    dstbuf = (Uint8 *) surf_dst->pixels + y * surf_dst->pitch + x * df->BytesPerPixel;
-    srcbuf = (Uint8 *) surf_src->map->data + sizeof(RLEDestFormat);
+    dstbuf = (Uint8 *) dst->pixels + y * dst->pitch + x * df->BytesPerPixel;
+    srcbuf = (Uint8 *) src->map->data + sizeof(RLEDestFormat);
 
     {
         /* skip lines at the top if necessary */
@@ -803,8 +789,8 @@ SDL_RLEAlphaBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
     }
 
     /* if left or right edge clipping needed, call clip blit */
-    if (srcrect->x || srcrect->w != surf_src->w) {
-        RLEAlphaClipBlit(w, srcbuf, surf_dst, dstbuf, srcrect);
+    if (srcrect->x || srcrect->w != src->w) {
+        RLEAlphaClipBlit(w, srcbuf, dst, dstbuf, srcrect);
     } else {
 
         /*
@@ -853,7 +839,7 @@ SDL_RLEAlphaBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
             ofs += run;                  \
             }                            \
         } while(ofs < w);                    \
-        dstbuf += surf_dst->pitch;                    \
+        dstbuf += dst->pitch;                    \
         } while(--linecount);                    \
     } while(0)
 
@@ -873,8 +859,8 @@ SDL_RLEAlphaBlit(SDL_Surface * surf_src, SDL_Rect * srcrect,
 
   done:
     /* Unlock the destination if necessary */
-    if (SDL_MUSTLOCK(surf_dst)) {
-        SDL_UnlockSurface(surf_dst);
+    if (SDL_MUSTLOCK(dst)) {
+        SDL_UnlockSurface(dst);
     }
     return 0;
 }
@@ -993,7 +979,7 @@ copy_32(void *dst, Uint32 * src, int n,
     for (i = 0; i < n; i++) {
         unsigned r, g, b, a;
         RGBA_FROM_8888(*src, sfmt, r, g, b, a);
-        RLEPIXEL_FROM_RGBA(*d, dfmt, r, g, b, a);
+        PIXEL_FROM_RGBA(*d, dfmt, r, g, b, a);
         d++;
         src++;
     }
@@ -1222,9 +1208,8 @@ RLEAlphaSurface(SDL_Surface * surface)
 
     /* Now that we have it encoded, release the original pixels */
     if (!(surface->flags & SDL_PREALLOC)) {
-        SDL_SIMDFree(surface->pixels);
+        SDL_free(surface->pixels);
         surface->pixels = NULL;
-        surface->flags &= ~SDL_SIMD_ALIGNED;
     }
 
     /* realloc the buffer to release unused memory */
@@ -1239,19 +1224,19 @@ RLEAlphaSurface(SDL_Surface * surface)
 }
 
 static Uint32
-getpix_8(const Uint8 * srcbuf)
+getpix_8(Uint8 * srcbuf)
 {
     return *srcbuf;
 }
 
 static Uint32
-getpix_16(const Uint8 * srcbuf)
+getpix_16(Uint8 * srcbuf)
 {
-    return *(const Uint16 *) srcbuf;
+    return *(Uint16 *) srcbuf;
 }
 
 static Uint32
-getpix_24(const Uint8 * srcbuf)
+getpix_24(Uint8 * srcbuf)
 {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
     return srcbuf[0] + (srcbuf[1] << 8) + (srcbuf[2] << 16);
@@ -1261,12 +1246,12 @@ getpix_24(const Uint8 * srcbuf)
 }
 
 static Uint32
-getpix_32(const Uint8 * srcbuf)
+getpix_32(Uint8 * srcbuf)
 {
-    return *(const Uint32 *) srcbuf;
+    return *(Uint32 *) srcbuf;
 }
 
-typedef Uint32(*getpix_func) (const Uint8 *);
+typedef Uint32(*getpix_func) (Uint8 *);
 
 static const getpix_func getpixes[4] = {
     getpix_8, getpix_16, getpix_24, getpix_32
@@ -1280,7 +1265,7 @@ RLEColorkeySurface(SDL_Surface * surface)
     int y;
     Uint8 *srcbuf, *lastline;
     int maxsize = 0;
-    const int bpp = surface->format->BytesPerPixel;
+    int bpp = surface->format->BytesPerPixel;
     getpix_func getpix;
     Uint32 ckey, rgbmask;
     int w, h;
@@ -1303,9 +1288,6 @@ RLEColorkeySurface(SDL_Surface * surface)
         maxsize = surface->h * (4 * (surface->w / 65535 + 1)
                                 + surface->w * 4) + 4;
         break;
-
-    default:
-        return -1;
     }
 
     rlebuf = (Uint8 *) SDL_malloc(maxsize);
@@ -1386,9 +1368,8 @@ RLEColorkeySurface(SDL_Surface * surface)
 
     /* Now that we have it encoded, release the original pixels */
     if (!(surface->flags & SDL_PREALLOC)) {
-        SDL_SIMDFree(surface->pixels);
+        SDL_free(surface->pixels);
         surface->pixels = NULL;
-        surface->flags &= ~SDL_SIMD_ALIGNED;
     }
 
     /* realloc the buffer to release unused memory */
@@ -1400,7 +1381,7 @@ RLEColorkeySurface(SDL_Surface * surface)
         surface->map->data = p;
     }
 
-    return 0;
+    return (0);
 }
 
 int
@@ -1432,7 +1413,7 @@ SDL_RLESurface(SDL_Surface * surface)
     /* Pass on combinations not supported */
     if ((flags & SDL_COPY_MODULATE_COLOR) ||
         ((flags & SDL_COPY_MODULATE_ALPHA) && surface->format->Amask) ||
-        (flags & (SDL_COPY_ADD | SDL_COPY_MOD | SDL_COPY_MUL)) ||
+        (flags & (SDL_COPY_ADD | SDL_COPY_MOD)) ||
         (flags & SDL_COPY_NEAREST)) {
         return -1;
     }
@@ -1488,11 +1469,10 @@ UnRLEAlpha(SDL_Surface * surface)
         uncopy_opaque = uncopy_transl = uncopy_32;
     }
 
-    surface->pixels = SDL_SIMDAlloc(surface->h * surface->pitch);
+    surface->pixels = SDL_malloc(surface->h * surface->pitch);
     if (!surface->pixels) {
         return (SDL_FALSE);
     }
-    surface->flags |= SDL_SIMD_ALIGNED;
     /* fill background with transparent pixels */
     SDL_memset(surface->pixels, 0, surface->h * surface->pitch);
 
@@ -1515,9 +1495,8 @@ UnRLEAlpha(SDL_Surface * surface)
             if (run) {
                 srcbuf += uncopy_opaque(dst + ofs, srcbuf, run, df, sf);
                 ofs += run;
-            } else if (!ofs) {
-                goto end_function;
-            }
+            } else if (!ofs)
+                return (SDL_TRUE);
         } while (ofs < w);
 
         /* skip padding if needed */
@@ -1538,8 +1517,7 @@ UnRLEAlpha(SDL_Surface * surface)
         } while (ofs < w);
         dst += surface->pitch >> 2;
     }
-
-end_function:
+    /* Make the compiler happy */
     return (SDL_TRUE);
 }
 
@@ -1554,13 +1532,12 @@ SDL_UnRLESurface(SDL_Surface * surface, int recode)
                 SDL_Rect full;
 
                 /* re-create the original surface */
-                surface->pixels = SDL_SIMDAlloc(surface->h * surface->pitch);
+                surface->pixels = SDL_malloc(surface->h * surface->pitch);
                 if (!surface->pixels) {
                     /* Oh crap... */
                     surface->flags |= SDL_RLEACCEL;
                     return;
                 }
-                surface->flags |= SDL_SIMD_ALIGNED;
 
                 /* fill it with the background color */
                 SDL_FillRect(surface, NULL, surface->map->info.colorkey);
@@ -1585,7 +1562,5 @@ SDL_UnRLESurface(SDL_Surface * surface, int recode)
         surface->map->data = NULL;
     }
 }
-
-#endif /* SDL_HAVE_RLE */
 
 /* vi: set ts=4 sw=4 expandtab: */

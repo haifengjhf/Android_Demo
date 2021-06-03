@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -27,7 +27,6 @@
 int WIN_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch)
 {
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
-    SDL_bool isstack;
     size_t size;
     LPBITMAPINFO info;
     HBITMAP hbm;
@@ -42,10 +41,7 @@ int WIN_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, voi
 
     /* Find out the format of the screen */
     size = sizeof(BITMAPINFOHEADER) + 256 * sizeof (RGBQUAD);
-    info = (LPBITMAPINFO)SDL_small_alloc(Uint8, size, &isstack);
-    if (!info) {
-        return SDL_OutOfMemory();
-    }
+    info = (LPBITMAPINFO)SDL_stack_alloc(Uint8, size);
 
     SDL_memset(info, 0, size);
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -86,7 +82,7 @@ int WIN_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, voi
 
     data->mdc = CreateCompatibleDC(data->hdc);
     data->hbm = CreateDIBSection(data->hdc, info, DIB_RGB_COLORS, pixels, NULL, 0);
-    SDL_small_free(info, isstack);
+    SDL_stack_free(info);
 
     if (!data->hbm) {
         return WIN_SetError("Unable to create DIB");
@@ -99,12 +95,8 @@ int WIN_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, voi
 int WIN_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect * rects, int numrects)
 {
     SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
-    int i;
 
-    for (i = 0; i < numrects; ++i) {
-        BitBlt(data->hdc, rects[i].x, rects[i].y, rects[i].w, rects[i].h,
-               data->mdc, rects[i].x, rects[i].y, SRCCOPY);
-    }
+    BitBlt(data->hdc, 0, 0, window->w, window->h, data->mdc, 0, 0, SRCCOPY);
     return 0;
 }
 

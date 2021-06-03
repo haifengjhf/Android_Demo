@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,18 +21,6 @@
 
 /* *INDENT-OFF* */
 
-#ifndef SDL_WAYLAND_MODULE
-#define SDL_WAYLAND_MODULE(modname)
-#endif
-
-#ifndef SDL_WAYLAND_SYM
-#define SDL_WAYLAND_SYM(rc,fn,params)
-#endif
-
-#ifndef SDL_WAYLAND_INTERFACE
-#define SDL_WAYLAND_INTERFACE(iface)
-#endif
-
 SDL_WAYLAND_MODULE(WAYLAND_CLIENT)
 SDL_WAYLAND_SYM(void, wl_proxy_marshal, (struct wl_proxy *, uint32_t, ...))
 SDL_WAYLAND_SYM(struct wl_proxy *, wl_proxy_create, (struct wl_proxy *, const struct wl_interface *))
@@ -40,7 +28,6 @@ SDL_WAYLAND_SYM(void, wl_proxy_destroy, (struct wl_proxy *))
 SDL_WAYLAND_SYM(int, wl_proxy_add_listener, (struct wl_proxy *, void (**)(void), void *))
 SDL_WAYLAND_SYM(void, wl_proxy_set_user_data, (struct wl_proxy *, void *))
 SDL_WAYLAND_SYM(void *, wl_proxy_get_user_data, (struct wl_proxy *))
-SDL_WAYLAND_SYM(uint32_t, wl_proxy_get_version, (struct wl_proxy *))
 SDL_WAYLAND_SYM(uint32_t, wl_proxy_get_id, (struct wl_proxy *))
 SDL_WAYLAND_SYM(const char *, wl_proxy_get_class, (struct wl_proxy *))
 SDL_WAYLAND_SYM(void, wl_proxy_set_queue, (struct wl_proxy *, struct wl_event_queue *))
@@ -68,9 +55,6 @@ SDL_WAYLAND_SYM(void, wl_list_insert_list, (struct wl_list *, struct wl_list *))
 SDL_WAYLAND_MODULE(WAYLAND_CLIENT_1_4)
 SDL_WAYLAND_SYM(struct wl_proxy *, wl_proxy_marshal_constructor, (struct wl_proxy *, uint32_t opcode, const struct wl_interface *interface, ...))
 
-SDL_WAYLAND_MODULE(WAYLAND_CLIENT_1_10)
-SDL_WAYLAND_SYM(struct wl_proxy *, wl_proxy_marshal_constructor_versioned, (struct wl_proxy *proxy, uint32_t opcode, const struct wl_interface *interface, uint32_t version, ...))
-
 SDL_WAYLAND_INTERFACE(wl_seat_interface)
 SDL_WAYLAND_INTERFACE(wl_surface_interface)
 SDL_WAYLAND_INTERFACE(wl_shm_pool_interface)
@@ -84,10 +68,6 @@ SDL_WAYLAND_INTERFACE(wl_compositor_interface)
 SDL_WAYLAND_INTERFACE(wl_output_interface)
 SDL_WAYLAND_INTERFACE(wl_shell_interface)
 SDL_WAYLAND_INTERFACE(wl_shm_interface)
-SDL_WAYLAND_INTERFACE(wl_data_device_interface)
-SDL_WAYLAND_INTERFACE(wl_data_source_interface)
-SDL_WAYLAND_INTERFACE(wl_data_offer_interface)
-SDL_WAYLAND_INTERFACE(wl_data_device_manager_interface)
 
 SDL_WAYLAND_MODULE(WAYLAND_EGL)
 SDL_WAYLAND_SYM(struct wl_egl_window *, wl_egl_window_create, (struct wl_surface *, int, int))
@@ -119,10 +99,8 @@ SDL_WAYLAND_SYM(enum xkb_state_component, xkb_state_update_mask, (struct xkb_sta
                       xkb_layout_index_t latched_layout,\
                       xkb_layout_index_t locked_layout) )
 
-#undef SDL_WAYLAND_MODULE
-#undef SDL_WAYLAND_SYM
-#undef SDL_WAYLAND_INTERFACE
 
 /* *INDENT-ON* */
 
 /* vi: set ts=4 sw=4 expandtab: */
+//SDL_WAYLAND_SYM(ret, fn, params)

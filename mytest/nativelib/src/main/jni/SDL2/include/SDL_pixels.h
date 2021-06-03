@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,11 +25,10 @@
  *  Header for the enumerated pixel format definitions.
  */
 
-#ifndef SDL_pixels_h_
-#define SDL_pixels_h_
+#ifndef _SDL_pixels_h
+#define _SDL_pixels_h
 
 #include "SDL_stdinc.h"
-#include "SDL_endian.h"
 
 #include "begin_code.h"
 /* Set up for C function definitions, even when using C++ */
@@ -48,7 +47,7 @@ extern "C" {
 /* @} */
 
 /** Pixel type. */
-typedef enum
+enum
 {
     SDL_PIXELTYPE_UNKNOWN,
     SDL_PIXELTYPE_INDEX1,
@@ -62,18 +61,18 @@ typedef enum
     SDL_PIXELTYPE_ARRAYU32,
     SDL_PIXELTYPE_ARRAYF16,
     SDL_PIXELTYPE_ARRAYF32
-} SDL_PixelType;
+};
 
 /** Bitmap pixel order, high bit -> low bit. */
-typedef enum
+enum
 {
     SDL_BITMAPORDER_NONE,
     SDL_BITMAPORDER_4321,
     SDL_BITMAPORDER_1234
-} SDL_BitmapOrder;
+};
 
 /** Packed component order, high bit -> low bit. */
-typedef enum
+enum
 {
     SDL_PACKEDORDER_NONE,
     SDL_PACKEDORDER_XRGB,
@@ -84,12 +83,10 @@ typedef enum
     SDL_PACKEDORDER_BGRX,
     SDL_PACKEDORDER_ABGR,
     SDL_PACKEDORDER_BGRA
-} SDL_PackedOrder;
+};
 
 /** Array component order, low byte -> high byte. */
-/* !!! FIXME: in 2.1, make these not overlap differently with
-   !!! FIXME:  SDL_PACKEDORDER_*, so we can simplify SDL_ISPIXELFORMAT_ALPHA */
-typedef enum
+enum
 {
     SDL_ARRAYORDER_NONE,
     SDL_ARRAYORDER_RGB,
@@ -98,10 +95,10 @@ typedef enum
     SDL_ARRAYORDER_BGR,
     SDL_ARRAYORDER_BGRA,
     SDL_ARRAYORDER_ABGR
-} SDL_ArrayOrder;
+};
 
 /** Packed component layout. */
-typedef enum
+enum
 {
     SDL_PACKEDLAYOUT_NONE,
     SDL_PACKEDLAYOUT_332,
@@ -112,7 +109,7 @@ typedef enum
     SDL_PACKEDLAYOUT_8888,
     SDL_PACKEDLAYOUT_2101010,
     SDL_PACKEDLAYOUT_1010102
-} SDL_PackedLayout;
+};
 
 #define SDL_DEFINE_PIXELFOURCC(A, B, C, D) SDL_FOURCC(A, B, C, D)
 
@@ -137,38 +134,19 @@ typedef enum
       (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX4) || \
       (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_INDEX8)))
 
-#define SDL_ISPIXELFORMAT_PACKED(format) \
-    (!SDL_ISPIXELFORMAT_FOURCC(format) && \
-     ((SDL_PIXELTYPE(format) == SDL_PIXELTYPE_PACKED8) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_PACKED16) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_PACKED32)))
-
-#define SDL_ISPIXELFORMAT_ARRAY(format) \
-    (!SDL_ISPIXELFORMAT_FOURCC(format) && \
-     ((SDL_PIXELTYPE(format) == SDL_PIXELTYPE_ARRAYU8) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_ARRAYU16) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_ARRAYU32) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_ARRAYF16) || \
-      (SDL_PIXELTYPE(format) == SDL_PIXELTYPE_ARRAYF32)))
-
 #define SDL_ISPIXELFORMAT_ALPHA(format)   \
-    ((SDL_ISPIXELFORMAT_PACKED(format) && \
+    (!SDL_ISPIXELFORMAT_FOURCC(format) && \
      ((SDL_PIXELORDER(format) == SDL_PACKEDORDER_ARGB) || \
       (SDL_PIXELORDER(format) == SDL_PACKEDORDER_RGBA) || \
       (SDL_PIXELORDER(format) == SDL_PACKEDORDER_ABGR) || \
-      (SDL_PIXELORDER(format) == SDL_PACKEDORDER_BGRA))) || \
-    (SDL_ISPIXELFORMAT_ARRAY(format) && \
-     ((SDL_PIXELORDER(format) == SDL_ARRAYORDER_ARGB) || \
-      (SDL_PIXELORDER(format) == SDL_ARRAYORDER_RGBA) || \
-      (SDL_PIXELORDER(format) == SDL_ARRAYORDER_ABGR) || \
-      (SDL_PIXELORDER(format) == SDL_ARRAYORDER_BGRA))))
+      (SDL_PIXELORDER(format) == SDL_PACKEDORDER_BGRA)))
 
 /* The flag is set to 1 because 0x1? is not in the printable ASCII range */
 #define SDL_ISPIXELFORMAT_FOURCC(format)    \
     ((format) && (SDL_PIXELFLAG(format) != 1))
 
 /* Note: If you modify this list, update SDL_GetPixelFormatName() */
-typedef enum
+enum
 {
     SDL_PIXELFORMAT_UNKNOWN,
     SDL_PIXELFORMAT_INDEX1LSB =
@@ -188,22 +166,15 @@ typedef enum
     SDL_PIXELFORMAT_RGB332 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED8, SDL_PACKEDORDER_XRGB,
                                SDL_PACKEDLAYOUT_332, 8, 1),
-    SDL_PIXELFORMAT_XRGB4444 =
+    SDL_PIXELFORMAT_RGB444 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_XRGB,
                                SDL_PACKEDLAYOUT_4444, 12, 2),
-    SDL_PIXELFORMAT_RGB444 = SDL_PIXELFORMAT_XRGB4444,
-    SDL_PIXELFORMAT_XBGR4444 =
-        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_XBGR,
-                               SDL_PACKEDLAYOUT_4444, 12, 2),
-    SDL_PIXELFORMAT_BGR444 = SDL_PIXELFORMAT_XBGR4444,
-    SDL_PIXELFORMAT_XRGB1555 =
+    SDL_PIXELFORMAT_RGB555 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_XRGB,
                                SDL_PACKEDLAYOUT_1555, 15, 2),
-    SDL_PIXELFORMAT_RGB555 = SDL_PIXELFORMAT_XRGB1555,
-    SDL_PIXELFORMAT_XBGR1555 =
+    SDL_PIXELFORMAT_BGR555 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_XBGR,
                                SDL_PACKEDLAYOUT_1555, 15, 2),
-    SDL_PIXELFORMAT_BGR555 = SDL_PIXELFORMAT_XBGR1555,
     SDL_PIXELFORMAT_ARGB4444 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_ARGB,
                                SDL_PACKEDLAYOUT_4444, 16, 2),
@@ -240,17 +211,15 @@ typedef enum
     SDL_PIXELFORMAT_BGR24 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_ARRAYU8, SDL_ARRAYORDER_BGR, 0,
                                24, 3),
-    SDL_PIXELFORMAT_XRGB8888 =
+    SDL_PIXELFORMAT_RGB888 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_XRGB,
                                SDL_PACKEDLAYOUT_8888, 24, 4),
-    SDL_PIXELFORMAT_RGB888 = SDL_PIXELFORMAT_XRGB8888,
     SDL_PIXELFORMAT_RGBX8888 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_RGBX,
                                SDL_PACKEDLAYOUT_8888, 24, 4),
-    SDL_PIXELFORMAT_XBGR8888 =
+    SDL_PIXELFORMAT_BGR888 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_XBGR,
                                SDL_PACKEDLAYOUT_8888, 24, 4),
-    SDL_PIXELFORMAT_BGR888 = SDL_PIXELFORMAT_XBGR8888,
     SDL_PIXELFORMAT_BGRX8888 =
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_BGRX,
                                SDL_PACKEDLAYOUT_8888, 24, 4),
@@ -270,19 +239,6 @@ typedef enum
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_ARGB,
                                SDL_PACKEDLAYOUT_2101010, 32, 4),
 
-    /* Aliases for RGBA byte arrays of color data, for the current platform */
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-    SDL_PIXELFORMAT_RGBA32 = SDL_PIXELFORMAT_RGBA8888,
-    SDL_PIXELFORMAT_ARGB32 = SDL_PIXELFORMAT_ARGB8888,
-    SDL_PIXELFORMAT_BGRA32 = SDL_PIXELFORMAT_BGRA8888,
-    SDL_PIXELFORMAT_ABGR32 = SDL_PIXELFORMAT_ABGR8888,
-#else
-    SDL_PIXELFORMAT_RGBA32 = SDL_PIXELFORMAT_ABGR8888,
-    SDL_PIXELFORMAT_ARGB32 = SDL_PIXELFORMAT_BGRA8888,
-    SDL_PIXELFORMAT_BGRA32 = SDL_PIXELFORMAT_ARGB8888,
-    SDL_PIXELFORMAT_ABGR32 = SDL_PIXELFORMAT_RGBA8888,
-#endif
-
     SDL_PIXELFORMAT_YV12 =      /**< Planar mode: Y + V + U  (3 planes) */
         SDL_DEFINE_PIXELFOURCC('Y', 'V', '1', '2'),
     SDL_PIXELFORMAT_IYUV =      /**< Planar mode: Y + U + V  (3 planes) */
@@ -292,14 +248,8 @@ typedef enum
     SDL_PIXELFORMAT_UYVY =      /**< Packed mode: U0+Y0+V0+Y1 (1 plane) */
         SDL_DEFINE_PIXELFOURCC('U', 'Y', 'V', 'Y'),
     SDL_PIXELFORMAT_YVYU =      /**< Packed mode: Y0+V0+Y1+U0 (1 plane) */
-        SDL_DEFINE_PIXELFOURCC('Y', 'V', 'Y', 'U'),
-    SDL_PIXELFORMAT_NV12 =      /**< Planar mode: Y + U/V interleaved  (2 planes) */
-        SDL_DEFINE_PIXELFOURCC('N', 'V', '1', '2'),
-    SDL_PIXELFORMAT_NV21 =      /**< Planar mode: Y + V/U interleaved  (2 planes) */
-        SDL_DEFINE_PIXELFOURCC('N', 'V', '2', '1'),
-    SDL_PIXELFORMAT_EXTERNAL_OES =      /**< Android video texture format */
-        SDL_DEFINE_PIXELFOURCC('O', 'E', 'S', ' ')
-} SDL_PixelFormatEnum;
+        SDL_DEFINE_PIXELFOURCC('Y', 'V', 'Y', 'U')
+};
 
 typedef struct SDL_Color
 {
@@ -474,6 +424,6 @@ extern DECLSPEC void SDLCALL SDL_CalculateGammaRamp(float gamma, Uint16 * ramp);
 #endif
 #include "close_code.h"
 
-#endif /* SDL_pixels_h_ */
+#endif /* _SDL_pixels_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

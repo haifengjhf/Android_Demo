@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,8 +20,8 @@
 */
 #include "../SDL_internal.h"
 
-#ifndef SDL_thread_c_h_
-#define SDL_thread_c_h_
+#ifndef _SDL_thread_c_h
+#define _SDL_thread_c_h
 
 #include "SDL_thread.h"
 
@@ -36,8 +36,6 @@
 #include "psp/SDL_systhread_c.h"
 #elif SDL_THREAD_STDCPP
 #include "stdcpp/SDL_systhread_c.h"
-#elif SDL_THREAD_OS2
-#include "os2/SDL_systhread_c.h"
 #else
 #error Need thread implementation for this platform
 #include "generic/SDL_systhread_c.h"
@@ -61,22 +59,18 @@ struct SDL_Thread
     SDL_atomic_t state;  /* SDL_THREAD_STATE_* */
     SDL_error errbuf;
     char *name;
-    size_t stacksize;  /* 0 for default, >0 for user-specified stack size. */
-    int (SDLCALL * userfunc) (void *);
-    void *userdata;
     void *data;
-    void *endfunc;  /* only used on some platforms. */
 };
 
 /* This is the function called to run a thread */
-extern void SDL_RunThread(SDL_Thread *thread);
+extern void SDL_RunThread(void *data);
 
 /* This is the system-independent thread local storage structure */
 typedef struct {
     unsigned int limit;
     struct {
         void *data;
-        void (SDLCALL *destructor)(void*);
+        void (*destructor)(void*);
     } array[1];
 } SDL_TLSData;
 
@@ -87,7 +81,7 @@ typedef struct {
    This is only intended as a fallback if getting real thread-local
    storage fails or isn't supported on this platform.
  */
-extern SDL_TLSData *SDL_Generic_GetTLSData(void);
+extern SDL_TLSData *SDL_Generic_GetTLSData();
 
 /* Set cross-platform, slow, thread local storage for this thread.
    This is only intended as a fallback if getting real thread-local
@@ -95,6 +89,6 @@ extern SDL_TLSData *SDL_Generic_GetTLSData(void);
  */
 extern int SDL_Generic_SetTLSData(SDL_TLSData *data);
 
-#endif /* SDL_thread_c_h_ */
+#endif /* _SDL_thread_c_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

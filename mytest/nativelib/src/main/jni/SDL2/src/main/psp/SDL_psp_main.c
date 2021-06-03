@@ -1,9 +1,6 @@
 /*
     SDL_psp_main.c, placed in the public domain by Sam Lantinga  3/13/14
 */
-#include "SDL_config.h"
-
-#ifdef __PSP__
 
 #include "SDL_main.h"
 #include <pspkernel.h>
@@ -64,7 +61,3 @@ int main(int argc, char *argv[])
     (void)SDL_main(argc, argv);
     return 0;
 }
-
-#endif /* __PSP__ */
-
-/* vi: set ts=4 sw=4 expandtab: */

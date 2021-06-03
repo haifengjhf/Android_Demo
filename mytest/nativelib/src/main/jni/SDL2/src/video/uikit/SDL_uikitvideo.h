@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,31 +18,28 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#ifndef SDL_uikitvideo_h_
-#define SDL_uikitvideo_h_
-
-#include "../SDL_sysvideo.h"
-
-#ifdef __OBJC__
+#ifndef _SDL_uikitvideo_h
+#define _SDL_uikitvideo_h
 
 #include <UIKit/UIKit.h>
 
-@interface SDL_VideoData : NSObject
+#include "../SDL_sysvideo.h"
 
-@property (nonatomic, assign) id pasteboardObserver;
+#ifndef __IPHONE_6_0
+/* This enum isn't available in older SDKs, but we use it for our own purposes on iOS 5.1 and for the system on iOS 6.0 */
+enum UIInterfaceOrientationMask
+{
+    UIInterfaceOrientationMaskPortrait = (1 << UIInterfaceOrientationPortrait),
+    UIInterfaceOrientationMaskLandscapeLeft = (1 << UIInterfaceOrientationLandscapeLeft),
+    UIInterfaceOrientationMaskLandscapeRight = (1 << UIInterfaceOrientationLandscapeRight),
+    UIInterfaceOrientationMaskPortraitUpsideDown = (1 << UIInterfaceOrientationPortraitUpsideDown),
+    UIInterfaceOrientationMaskLandscape = (UIInterfaceOrientationMaskLandscapeLeft | UIInterfaceOrientationMaskLandscapeRight),
+    UIInterfaceOrientationMaskAll = (UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskLandscapeLeft | UIInterfaceOrientationMaskLandscapeRight | UIInterfaceOrientationMaskPortraitUpsideDown),
+    UIInterfaceOrientationMaskAllButUpsideDown = (UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskLandscapeLeft | UIInterfaceOrientationMaskLandscapeRight),
+};
+#endif /* !__IPHONE_6_0 */
 
-@end
 
-CGRect UIKit_ComputeViewFrame(SDL_Window *window, UIScreen *screen);
-
-#endif /* __OBJC__ */
-
-void UIKit_SuspendScreenSaver(_THIS);
-
-void UIKit_ForceUpdateHomeIndicator(void);
-
-SDL_bool UIKit_IsSystemVersionAtLeast(double version);
-
-#endif /* SDL_uikitvideo_h_ */
+#endif /* _SDL_uikitvideo_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

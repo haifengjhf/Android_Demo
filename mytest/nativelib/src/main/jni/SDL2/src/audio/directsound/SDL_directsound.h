@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,10 +20,10 @@
 */
 #include "../../SDL_internal.h"
 
-#ifndef SDL_directsound_h_
-#define SDL_directsound_h_
+#ifndef _SDL_directsound_h
+#define _SDL_directsound_h
 
-#include "../../core/windows/SDL_directx.h"
+#include "directx.h"
 
 #include "../SDL_sysaudio.h"
 
@@ -35,13 +35,12 @@ struct SDL_PrivateAudioData
 {
     LPDIRECTSOUND sound;
     LPDIRECTSOUNDBUFFER mixbuf;
-    LPDIRECTSOUNDCAPTURE capture;
-    LPDIRECTSOUNDCAPTUREBUFFER capturebuf;
     int num_buffers;
+    int mixlen;
     DWORD lastchunk;
     Uint8 *locked_buf;
 };
 
-#endif /* SDL_directsound_h_ */
+#endif /* _SDL_directsound_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,73 +26,21 @@
 #include "SDL_events_c.h"
 #include "SDL_dropevents_c.h"
 
-#include "../video/SDL_sysvideo.h"  /* for SDL_Window internals. */
 
-
-static int
-SDL_SendDrop(SDL_Window *window, const SDL_EventType evtype, const char *data)
+int
+SDL_SendDropFile(const char *file)
 {
-    static SDL_bool app_is_dropping = SDL_FALSE;
-    int posted = 0;
+    int posted;
 
     /* Post the event, if desired */
-    if (SDL_GetEventState(evtype) == SDL_ENABLE) {
-        const SDL_bool need_begin = window ? !window->is_dropping : !app_is_dropping;
+    posted = 0;
+    if (SDL_GetEventState(SDL_DROPFILE) == SDL_ENABLE) {
         SDL_Event event;
-
-        if (need_begin) {
-            SDL_zero(event);
-            event.type = SDL_DROPBEGIN;
-
-            if (window) {
-                event.drop.windowID = window->id;
-            }
-
-            posted = (SDL_PushEvent(&event) > 0);
-            if (!posted) {
-                return 0;
-            }
-            if (window) {
-                window->is_dropping = SDL_TRUE;
-            } else {
-                app_is_dropping = SDL_TRUE;
-            }
-        }
-
-        SDL_zero(event);
-        event.type = evtype;
-        event.drop.file = data ? SDL_strdup(data) : NULL;
-        event.drop.windowID = window ? window->id : 0;
+        event.type = SDL_DROPFILE;
+        event.drop.file = SDL_strdup(file);
         posted = (SDL_PushEvent(&event) > 0);
-
-        if (posted && (evtype == SDL_DROPCOMPLETE)) {
-            if (window) {
-                window->is_dropping = SDL_FALSE;
-            } else {
-                app_is_dropping = SDL_FALSE;
-            }
-        }
     }
-    return posted;
+    return (posted);
 }
-
-int
-SDL_SendDropFile(SDL_Window *window, const char *file)
-{
-    return SDL_SendDrop(window, SDL_DROPFILE, file);
-}
-
-int
-SDL_SendDropText(SDL_Window *window, const char *text)
-{
-    return SDL_SendDrop(window, SDL_DROPTEXT, text);
-}
-
-int
-SDL_SendDropComplete(SDL_Window *window)
-{
-    return SDL_SendDrop(window, SDL_DROPCOMPLETE, NULL);
-}
-
 
 /* vi: set ts=4 sw=4 expandtab: */

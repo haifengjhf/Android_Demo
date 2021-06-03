@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,9 +18,6 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
-
-#if SDL_THREAD_PSP
 
 /* Semaphore functions for the PSP. */
 
@@ -79,7 +76,7 @@ void SDL_DestroySemaphore(SDL_sem *sem)
 int SDL_SemWaitTimeout(SDL_sem *sem, Uint32 timeout)
 {
     Uint32 *pTimeout;
-    int res;
+       unsigned int res;
 
     if (sem == NULL) {
         SDL_SetError("Passed a NULL sem");
@@ -108,7 +105,7 @@ int SDL_SemWaitTimeout(SDL_sem *sem, Uint32 timeout)
                case SCE_KERNEL_ERROR_WAIT_TIMEOUT:
                        return SDL_MUTEX_TIMEDOUT;
                default:
-                       return SDL_SetError("sceKernelWaitSema() failed");
+                       return SDL_SetError("WaitForSingleObject() failed");
     }
 }
 
@@ -154,8 +151,6 @@ int SDL_SemPost(SDL_sem *sem)
 
     return 0;
 }
-
-#endif /* SDL_THREAD_PSP */
 
 /* vim: ts=4 sw=4
  */

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,13 +20,11 @@
 */
 #include "../SDL_internal.h"
 
-#ifndef SDL_dropevents_c_h_
-#define SDL_dropevents_c_h_
+#ifndef _SDL_dropevents_c_h
+#define _SDL_dropevents_c_h
 
-extern int SDL_SendDropFile(SDL_Window *window, const char *file);
-extern int SDL_SendDropText(SDL_Window *window, const char *text);
-extern int SDL_SendDropComplete(SDL_Window *window);
+extern int SDL_SendDropFile(const char *file);
 
-#endif /* SDL_dropevents_c_h_ */
+#endif /* _SDL_dropevents_c_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

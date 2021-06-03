@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,9 +18,6 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "../../SDL_internal.h"
-
-#if SDL_VIDEO_DRIVER_PSP
 
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +44,10 @@
 int
 PSP_GL_LoadLibrary(_THIS, const char *path)
 {
+  if (!_this->gl_config.driver_loaded) {
+        _this->gl_config.driver_loaded = 1;
+  }
+
   return 0;
 }
 
@@ -170,13 +171,10 @@ PSP_GL_GetSwapInterval(_THIS)
     return _this->gl_data->swapinterval;
 }
 
-int
+void
 PSP_GL_SwapWindow(_THIS, SDL_Window * window)
 {
-    if (!eglSwapBuffers(_this->gl_data->display, _this->gl_data->surface)) {
-        return SDL_SetError("eglSwapBuffers() failed");
-    }
-    return 0;
+    eglSwapBuffers(_this->gl_data->display, _this->gl_data->surface);
 }
 
 void
@@ -205,6 +203,3 @@ PSP_GL_DeleteContext(_THIS, SDL_GLContext context)
     return;
 }
 
-#endif /* SDL_VIDEO_DRIVER_PSP */
-
-/* vi: set ts=4 sw=4 expandtab: */
