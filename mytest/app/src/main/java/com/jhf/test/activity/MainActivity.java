@@ -1,5 +1,6 @@
 package com.jhf.test.activity;
 
+import com.jhf.nativelib.bridge.sdl.SDLActivity;
 import com.jhf.test.R;
 
 import android.Manifest;
@@ -10,12 +11,14 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Adapter;
 
 import java.util.List;
@@ -84,5 +87,10 @@ public class MainActivity extends AppCompatActivity {
         super.onConfigurationChanged(newConfig);
 
         Log.d(TAG," widthPixels:" + getResources().getDisplayMetrics().widthPixels + " heightPixels:" + getResources().getDisplayMetrics().heightPixels);
+    }
+
+    public void onSDLBtnClick(View view){
+        Intent intent = new Intent(this, SDLActivity.class);
+        startActivity(intent);
     }
 }
