@@ -10,6 +10,7 @@
 #include <android/log.h>
 #include "LogUtils.h"
 #include "FirstTest.h"
+#include "Decoder.h"
 
 
 JNINativeMethod jniNativeMethod[] = {
@@ -22,6 +23,11 @@ JNINativeMethod jniNativeMethod[] = {
                 "ffmpegTest",
                 "()V",
                 (void *) &FirstTest::ffmpegTest
+        },
+        {
+            "decodeToYUV",
+                "(Ljava/lang/String;Ljava/lang/String;)I",
+            (void *) &Decoder::decodeToYUV
         }
 };
 

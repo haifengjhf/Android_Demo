@@ -10,4 +10,6 @@ public class NativeEntrance {
     public native void test();
 
     public native void ffmpegTest();
+
+    public native int decodeToYUV(String filePath,String outFilePath);
 }

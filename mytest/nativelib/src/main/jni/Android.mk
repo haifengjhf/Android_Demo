@@ -13,11 +13,13 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := native-lib
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmpeg/include
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmpeg/include
 
 LOCAL_SRC_FILES := src/NativelibMain.cpp \
                            src/FirstTest.cpp \
-                           src/utils/LogUtils.cpp
+                           src/utils/LogUtils.cpp \
+                           src/Decoder.cpp \
+                           src/Player.cpp
 
 # Warnings we haven't fixed (yet)
 #LOCAL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare

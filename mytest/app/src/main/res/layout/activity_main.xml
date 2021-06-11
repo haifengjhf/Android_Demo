@@ -17,4 +17,11 @@
             android:text="navigate sdl activity"
             android:onClick="onSDLBtnClick"
             />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="navigate native entrance"
+            android:onClick="onNativeEntranceBtnClick"
+            />
 </LinearLayout>

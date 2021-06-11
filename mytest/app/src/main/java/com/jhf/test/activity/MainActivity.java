@@ -1,5 +1,6 @@
 package com.jhf.test.activity;
 
+import com.jhf.nativelib.bridge.NativeEntranceTestActivity;
 import com.jhf.nativelib.bridge.sdl.SDLActivity;
 import com.jhf.test.R;
 
@@ -15,6 +16,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -38,17 +40,20 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         requestPermission();
+//        requestStoragePermission();
 
         Log.d(TAG," widthPixels:" + getResources().getDisplayMetrics().widthPixels + " heightPixels:" + getResources().getDisplayMetrics().heightPixels);
 
         mulBleTest();
+
+
     }
 
     public void requestPermission(){
-//        if(PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
-//            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.BLUETOOTH},0);
-//        }
-        if(PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)){
+        if(PackageManager.PERMISSION_DENIED == ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)){
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE},0);
+        }
+        if(PackageManager.PERMISSION_DENIED == ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)){
             ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.BLUETOOTH},0);
         }
     }
@@ -92,5 +97,21 @@ public class MainActivity extends AppCompatActivity {
     public void onSDLBtnClick(View view){
         Intent intent = new Intent(this, SDLActivity.class);
         startActivity(intent);
+    }
+
+    public void onNativeEntranceBtnClick(View view){
+        Intent intent = new Intent(this, NativeEntranceTestActivity.class);
+        startActivity(intent);
+    }
+
+    public void requestStoragePermission(){
+        Uri uri1 = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata");
+        Intent intent1 = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent1.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        intent1.putExtra("EXTRA_INITIAL_URI", uri1);
+        startActivityForResult(intent1, 11);
     }
 }

@@ -33,3 +33,12 @@ void native_write_w(const char* msg){
 void native_write_e(const char* msg){
     __android_log_write(ANDROID_LOG_ERROR,TAG.c_str(),msg);
 }
+
+void custom_log(void *ptr, int level, const char* fmt, va_list vl){
+    FILE *fp=fopen("/storage/emulated/0/av_log.txt","a+");
+    if(fp){
+        vfprintf(fp,fmt,vl);
+        fflush(fp);
+        fclose(fp);
+    }
+}
