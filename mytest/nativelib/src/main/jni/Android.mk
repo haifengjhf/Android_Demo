@@ -18,8 +18,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmp
 LOCAL_SRC_FILES := src/NativelibMain.cpp \
                            src/FirstTest.cpp \
                            src/utils/LogUtils.cpp \
-                           src/Decoder.cpp \
-                           src/Player.cpp
+                           src/Decoder.cpp
 
 # Warnings we haven't fixed (yet)
 #LOCAL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare
@@ -95,3 +94,28 @@ LOCAL_PATH := $(MY_LOCAL_PATH)
 include $(CLEAR_VARS)
 #include $(call all-subdir-makefiles)
 include ${LOCAL_PATH}/SDL2/Android.mk
+
+
+
+##########################
+#
+# SDL main library
+#
+##########################
+
+include $(CLEAR_VARS)
+LOCAL_PATH := $(MY_LOCAL_PATH)
+LOCAL_MODULE := main
+LOCAL_CPPFLAGS += -std=c++11
+
+SDL_PATH := ./SDL2
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmpeg/include
+
+# Add your application source files here...
+LOCAL_SRC_FILES := $(LOCAL_PATH)/$(SDL_PATH)/src/main/android/SDL_android_main.c \
+	$(LOCAL_PATH)/src/usermain/userplayer.c
+LOCAL_SHARED_LIBRARIES := native-lib libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2
+LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
+include $(BUILD_SHARED_LIBRARY)
+
+##########################

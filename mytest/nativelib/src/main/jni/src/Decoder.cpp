@@ -49,7 +49,7 @@ int Decoder::decodeToYUVInner(const char *pFilePath, const char *pOutPath) {
     char info[1000]={0};
 
     //FFmpeg av_log() callback
-    av_log_set_callback(custom_log);
+//    av_log_set_callback(custom_log);
 
     av_register_all();
     avformat_network_init();

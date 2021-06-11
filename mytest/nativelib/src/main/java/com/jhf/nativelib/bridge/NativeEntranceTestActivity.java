@@ -38,4 +38,19 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
 
         mNativeEntrance.decodeToYUV(inputurl,outputurl);
     }
+
+    public void onPlayBtnClick(View view){
+        String folderurl= this.getExternalCacheDir().getParent();
+        String urltext_input="sintel.mp4";
+        String inputurl=folderurl+"/"+urltext_input;
+
+        String urltext_output="sintel.yuv";
+        String outputurl=folderurl+"/"+urltext_output;
+
+        Log.i("inputurl",inputurl);
+        Log.i("outputurl",outputurl);
+
+        mNativeEntrance.play(inputurl);
+    }
+
 }
