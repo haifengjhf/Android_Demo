@@ -10,13 +10,18 @@
 #include <android/log.h>
 #include <pthread.h>
 #include <SDL2/src/core/android/SDL_android.h>
-#include "LogUtils.h"
 #include "FirstTest.h"
 #include "Decoder.h"
 //#include "usermain/Player.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "LogUtils.h"
+
 static pthread_key_t mThreadKey;
-static JavaVM* mJavaVM;
+static JavaVM *mJavaVM;
 
 JNINativeMethod jniNativeMethod[] = {
         {
@@ -30,9 +35,9 @@ JNINativeMethod jniNativeMethod[] = {
                 (void *) &FirstTest::ffmpegTest
         },
         {
-            "decodeToYUV",
+                "decodeToYUV",
                 "(Ljava/lang/String;Ljava/lang/String;)I",
-            (void *) &Decoder::decodeToYUV
+                (void *) &Decoder::decodeToYUV
         },
 //        {
 //            "play",
@@ -41,10 +46,9 @@ JNINativeMethod jniNativeMethod[] = {
 //        }
 };
 
-static void Android_JNI_ThreadDestroyed(void* value)
-{
+static void Android_JNI_ThreadDestroyed(void *value) {
     /* The thread is being destroyed, detach it from the Java VM and set the mThreadKey value to NULL as required */
-    JNIEnv *env = (JNIEnv*) value;
+    JNIEnv *env = (JNIEnv *) value;
     if (env != NULL) {
         (mJavaVM)->DetachCurrentThread();
         pthread_setspecific(mThreadKey, NULL);
@@ -89,7 +93,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     }
     Android_JNI_SetupThread();
 
-    native_write_d( "JNI_OnUnload");
+    native_write_d("JNI_OnUnload");
     return result;
 }
 
@@ -97,5 +101,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *reserved) {
     native_write_d("JNI_OnUnload");
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

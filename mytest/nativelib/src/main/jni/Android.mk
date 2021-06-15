@@ -17,7 +17,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmp
 
 LOCAL_SRC_FILES := src/NativelibMain.cpp \
                            src/FirstTest.cpp \
-                           src/utils/LogUtils.cpp \
+                           src/utils/LogUtils.c \
                            src/Decoder.cpp
 
 # Warnings we haven't fixed (yet)

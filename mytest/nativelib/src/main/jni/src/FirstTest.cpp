@@ -4,13 +4,13 @@
 
 #include <string>
 #include "FirstTest.h"
-#include "utils/LogUtils.h"
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
+#include "utils/LogUtils.h"
 #include <jni.h>
 #include "android/log.h"
 #include "libavcodec/avcodec.h"

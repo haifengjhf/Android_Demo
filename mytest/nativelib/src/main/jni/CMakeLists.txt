@@ -12,7 +12,7 @@ include_directories(src ffmpeg/include)
 
 set(LIB_SRC src/NativelibMain.cpp
         src/FirstTest.cpp
-        src/utils/LogUtils.cpp
+        src/utils/LogUtils.c
         )
 
 add_library(native-lib SHARED

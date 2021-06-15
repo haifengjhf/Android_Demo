@@ -2,12 +2,12 @@
 // Created by 金海峰 on 2021/6/10.
 //
 #include "Decoder.h"
-#include "LogUtils.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include "LogUtils.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
