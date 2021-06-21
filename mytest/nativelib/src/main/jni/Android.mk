@@ -109,11 +109,13 @@ LOCAL_MODULE := main
 LOCAL_CPPFLAGS += -std=c++11
 
 SDL_PATH := ./SDL2
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmpeg/include
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/ffmpeg/include $(LOCAL_PATH)/$(SDL_PATH)/include $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/src/usermain
 
 # Add your application source files here...
 LOCAL_SRC_FILES := $(LOCAL_PATH)/$(SDL_PATH)/src/main/android/SDL_android_main.c \
 	$(LOCAL_PATH)/src/usermain/userplayer.c
+#	$(LOCAL_PATH)/src/usermain/defaultAudio.c
+#	$(LOCAL_PATH)/src/usermain/sdllesson.c
 LOCAL_SHARED_LIBRARIES := native-lib libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 include $(BUILD_SHARED_LIBRARY)

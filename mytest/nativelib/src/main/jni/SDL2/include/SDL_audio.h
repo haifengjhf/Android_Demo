@@ -846,7 +846,7 @@ extern DECLSPEC void SDLCALL SDL_UnlockAudioDevice(SDL_AudioDeviceID dev);
  *  This function shuts down audio processing and closes the audio device.
  */
 extern DECLSPEC void SDLCALL SDL_CloseAudio(void);
-extern DECLSPEC void SDLCALL SDL_CloseAudioDevice(SDL_AudioDeviceID dev);
+extern DECLSPEC void SDLCALL    SDL_CloseAudioDevice(SDL_AudioDeviceID dev);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
