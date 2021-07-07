@@ -9,6 +9,7 @@
 extern "C"{
 #endif
 
+#include "stdarg.h"
 
 void native_write_d(const char *msg);
 
@@ -25,7 +26,7 @@ void native_print_e(const char *format, ...);
 
 ///////////////////////////////////
 
-//void custom_log(void *ptr, int level, const char *fmt, va_list vl);
+void custom_log(void *ptr, int level, const char *fmt, va_list vl);
 
 
 #ifdef __cpluscplus

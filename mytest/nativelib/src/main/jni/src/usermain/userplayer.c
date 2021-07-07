@@ -300,7 +300,7 @@ int playInner(const char *filePath) {
 
     int videoIndex = -1;
     int audioIndex = -1;
-    AVFrame	*pFrame,*pFrameYUV = NULL;
+    AVFrame	*pFrame = NULL,*pFrameYUV = NULL;
     AVPacket* pPacket = NULL;
 
     struct SwsContext* pSwsContext = NULL;
@@ -552,9 +552,9 @@ int playInner(const char *filePath) {
             break;
         if (!got_picture)
             break;
-        sws_scale(pSwsContext, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height,
-                  pFrameYUV->data, pFrameYUV->linesize);
-        int y_size= pVideoCodecContext->width * pVideoCodecContext->height;
+//        sws_scale(pSwsContext, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height,
+//                  pFrameYUV->data, pFrameYUV->linesize);
+//        int y_size= pVideoCodecContext->width * pVideoCodecContext->height;
 //        fwrite(pFrameYUV->data[0],1,y_size,fp_yuv);    //Y
 //        fwrite(pFrameYUV->data[1],1,y_size/4,fp_yuv);  //U
 //        fwrite(pFrameYUV->data[2],1,y_size/4,fp_yuv);  //V
@@ -568,7 +568,7 @@ int playInner(const char *filePath) {
         }
         native_print_d("av_read_frame Frame Index: %5d. Type:%s, pts:%lld,duration:%lld",frame_cnt,pictype_str,pFrame->pts,pFrame->pkt_duration);
         frame_cnt++;
-        displayVideo(pRender, pTexture, pFormatContext->streams[videoIndex], pFrameYUV, pFormatContext->streams[videoIndex]->time_base);
+//        displayVideo(pRender, pTexture, pFormatContext->streams[videoIndex], pFrameYUV, pFormatContext->streams[videoIndex]->time_base);
     }
 
 

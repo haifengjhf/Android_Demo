@@ -12,10 +12,32 @@
             android:onClick="onConvertBtnClick"
             />
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="play to yuv"
-            android:onClick="onPlayBtnClick"
-            />
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="play"
+                android:onClick="onPlayBtn1Click"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="play"
+                android:onClick="onPlayBtn2Click"
+                />
+    </LinearLayout>
+
+
+    <SurfaceView
+            android:id="@+id/video_view1"
+            android:layout_width="match_parent"
+            android:layout_height="320dp"/>
+
+    <SurfaceView
+            android:id="@+id/video_view2"
+            android:layout_width="match_parent"
+            android:layout_height="320dp"/>
 </LinearLayout>

@@ -1,6 +1,7 @@
 package com.jhf.nativelib.bridge;
 
 
+import android.view.Surface;
 
 public class NativeEntrance {
     public void init(){
@@ -14,4 +15,6 @@ public class NativeEntrance {
     public native int decodeToYUV(String filePath,String outFilePath);
 
     public native int play(String filePath);
+
+    public native int setVideoSurface(Surface surface);
 }

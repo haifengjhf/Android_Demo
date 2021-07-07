@@ -12,6 +12,7 @@
 #include <SDL2/src/core/android/SDL_android.h>
 #include "FirstTest.h"
 #include "Decoder.h"
+#include "PlayerEx.h"
 //#include "usermain/Player.h"
 
 #ifdef __cplusplus
@@ -39,11 +40,16 @@ JNINativeMethod jniNativeMethod[] = {
                 "(Ljava/lang/String;Ljava/lang/String;)I",
                 (void *) &Decoder::decodeToYUV
         },
-//        {
-//            "play",
-//            "(Ljava/lang/String;)I",
-//            (void*)&Player::play
-//        }
+        {
+            "play",
+            "(Ljava/lang/String;)I",
+            (void*)&PlayerEx::play
+        },
+        {
+            "setVideoSurface",
+                    "(Landroid/view/Surface;)I",
+                    (void*)&PlayerEx::setVideoSurface
+        }
 };
 
 static void Android_JNI_ThreadDestroyed(void *value) {
@@ -78,20 +84,22 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     native_write_d("JNI_OnLoad");
 
     mJavaVM = vm;
-    jint result;
+    jint result(JNI_ERR);
     JNIEnv *env = NULL;
-    if (vm->AttachCurrentThread(&env, NULL) == JNI_OK) {
-        result = dynamicReg(env);
+    if (vm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        return result;
     }
+
+    result = dynamicReg(env);
 
     /*
      * Create mThreadKey so we can keep track of the JNIEnv assigned to each thread
      * Refer to http://developer.android.com/guide/practices/design/jni.html for the rationale behind this
      */
-    if (pthread_key_create(&mThreadKey, Android_JNI_ThreadDestroyed) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "SDL", "Error initializing pthread key");
-    }
-    Android_JNI_SetupThread();
+//    if (pthread_key_create(&mThreadKey, Android_JNI_ThreadDestroyed) != 0) {
+//        __android_log_print(ANDROID_LOG_ERROR, "SDL", "Error initializing pthread key");
+//    }
+//    Android_JNI_SetupThread();
 
     native_write_d("JNI_OnUnload");
     return result;

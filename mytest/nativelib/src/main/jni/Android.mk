@@ -18,7 +18,13 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmp
 LOCAL_SRC_FILES := src/NativelibMain.cpp \
                            src/FirstTest.cpp \
                            src/utils/LogUtils.c \
+                           src/MyNativeWindow.cpp \
+						   src/PlayerEx.cpp \
+						   src/VideoScale.cpp \
                            src/Decoder.cpp
+
+
+LOCAL_CPPFLAGS += -std=c++11
 
 # Warnings we haven't fixed (yet)
 #LOCAL_CFLAGS += -Wno-unused-parameter -Wno-sign-compare
