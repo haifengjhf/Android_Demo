@@ -74,12 +74,14 @@ int insertAudioChunk(AudioChunk *chunk, AudioChunkQueue *queue);
  */
 int getNextAudioChunk(AudioChunk **chunk, AudioChunkQueue *queue, int howManyBytes);
 
+int tryGetNextAudioChunk(AudioChunk **chunk, AudioChunkQueue *queue, int howManyBytes);
+
 /*!
  * \brief Flushes the given queue.
  * \param queue The queue to be flushed.
  * \param shouldUnlockMutex Whether the function should unlock the queue's mutex after flushing it.
  */
-void flushAudioChunkQueue(AudioChunkQueue *queue, int shouldUnlockMutex);
+//void flushAudioChunkQueue(AudioChunkQueue *queue, int shouldUnlockMutex);
 
 /*!
  * \brief Frees the given queue.

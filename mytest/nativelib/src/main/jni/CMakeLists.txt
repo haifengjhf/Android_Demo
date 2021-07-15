@@ -10,7 +10,7 @@ include_directories(src src/utils)
 include_directories(src ffmpeg/include)
 
 
-set(LIB_SRC src/NativelibMain.cpp
+set(LIB_SRC src/AndroidJni.cpp
         src/FirstTest.cpp
         src/utils/LogUtils.c
         )

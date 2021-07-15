@@ -13,6 +13,7 @@
 #include "FirstTest.h"
 #include "Decoder.h"
 #include "PlayerEx.h"
+#include "AndroidJni.h"
 //#include "usermain/Player.h"
 
 #ifdef __cplusplus
@@ -21,8 +22,13 @@ extern "C" {
 
 #include "LogUtils.h"
 
-static pthread_key_t mThreadKey;
-static JavaVM *mJavaVM;
+
+static JavaVM *g_jvm;
+JavaVM* JNI_GetJvm()
+{
+    return g_jvm;
+}
+
 
 JNINativeMethod jniNativeMethod[] = {
         {
@@ -52,14 +58,6 @@ JNINativeMethod jniNativeMethod[] = {
         }
 };
 
-static void Android_JNI_ThreadDestroyed(void *value) {
-    /* The thread is being destroyed, detach it from the Java VM and set the mThreadKey value to NULL as required */
-    JNIEnv *env = (JNIEnv *) value;
-    if (env != NULL) {
-        (mJavaVM)->DetachCurrentThread();
-        pthread_setspecific(mThreadKey, NULL);
-    }
-}
 
 jint dynamicReg(JNIEnv *env) {
     //获取对应声明native方法的Java类
@@ -82,24 +80,18 @@ jint dynamicReg(JNIEnv *env) {
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     //OnLoad方法是没有JNIEnv参数的，需要通过vm获取。
     native_write_d("JNI_OnLoad");
+    JLOGE("JNI_OnLoad 123");
+    JLOGE("JNI_OnLoad %s","123");
 
-    mJavaVM = vm;
+    g_jvm = vm;
     jint result(JNI_ERR);
     JNIEnv *env = NULL;
     if (vm->AttachCurrentThread(&env, NULL) != JNI_OK) {
         return result;
     }
 
+//    J4A_loadClass__J4AC_android_media_AudioTrack(env);
     result = dynamicReg(env);
-
-    /*
-     * Create mThreadKey so we can keep track of the JNIEnv assigned to each thread
-     * Refer to http://developer.android.com/guide/practices/design/jni.html for the rationale behind this
-     */
-//    if (pthread_key_create(&mThreadKey, Android_JNI_ThreadDestroyed) != 0) {
-//        __android_log_print(ANDROID_LOG_ERROR, "SDL", "Error initializing pthread key");
-//    }
-//    Android_JNI_SetupThread();
 
     native_write_d("JNI_OnUnload");
     return result;

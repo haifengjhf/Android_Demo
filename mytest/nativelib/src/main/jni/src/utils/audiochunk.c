@@ -1,9 +1,9 @@
 #include "audiochunk.h"
 
-#include <libavutil/opt.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 static void _freeAudioChunk(AudioChunk **chunk);
 
@@ -18,10 +18,16 @@ AudioChunkQueue* createAudioChunkQueue(int maxCapacity)
     
     sem_unlink("/full");
     sem_unlink("/empty");
-    
+
+    //有名信号量
     queue->full = sem_open("/full", O_CREAT, 0644, 0);
     queue->empty = sem_open("/empty", O_CREAT, 0644, maxCapacity);
-    
+    //释放使用sem_close,sem_unlink
+
+
+    //无名信号量
+    //创建使用sem_init, 释放使用sem_destroy
+
     return queue;
 }
 
@@ -55,6 +61,52 @@ int insertAudioChunk(AudioChunk *chunk, AudioChunkQueue *queue)
     return 1;
 }
 
+int tryGetNextAudioChunk(AudioChunk **chunk, AudioChunkQueue *queue, int howManyBytes){
+    if (queue == NULL) {
+        return 0;
+    }
+
+    if(sem_trywait(queue->full) == EAGAIN){
+        return 0;
+    }
+
+    pthread_mutex_lock(&queue->mutex);
+
+    AudioChunkList *first = queue->first;
+    if (first->chunk->size <= howManyBytes) {
+        *chunk = first->chunk;
+        queue->first = queue->first->next;
+
+        queue->quantity--;
+        if (queue->quantity == 0) {
+            queue->first = NULL;
+            queue->last = NULL;
+        }
+
+        free(first);
+        sem_post(queue->empty);
+
+    } else {
+        sem_post(queue->full);
+
+        *chunk = malloc(sizeof(AudioChunk));
+        (*chunk)->size = howManyBytes;
+        (*chunk)->data = malloc(howManyBytes);
+        memcpy((*chunk)->data, first->chunk->data, howManyBytes);
+
+        first->chunk->size -= howManyBytes;
+        uint8_t *remainingData = malloc(first->chunk->size);
+        memcpy(remainingData, first->chunk->data + howManyBytes, first->chunk->size);
+        free(first->chunk->data);
+        first->chunk->data = remainingData;
+    }
+
+    pthread_mutex_unlock(&queue->mutex);
+
+    return 1;
+}
+
+
 int getNextAudioChunk(AudioChunk **chunk, AudioChunkQueue *queue, int howManyBytes)
 {
     if (queue == NULL) {
@@ -74,9 +126,10 @@ int getNextAudioChunk(AudioChunk **chunk, AudioChunkQueue *queue, int howManyByt
             queue->first = NULL;
             queue->last = NULL;
         }
-        
+
         free(first);
         sem_post(queue->empty);
+
     } else {
         sem_post(queue->full);
         

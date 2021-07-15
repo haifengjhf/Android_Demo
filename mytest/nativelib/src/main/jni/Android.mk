@@ -13,15 +13,20 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := native-lib
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/src $(LOCAL_PATH)/src/utils $(LOCAL_PATH)/ffmpeg/include
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/src \
+					$(LOCAL_PATH)/src/utils \
+					$(LOCAL_PATH)/ffmpeg/include \
+					$(LOCAL_PATH)/ijkj4a
 
-LOCAL_SRC_FILES := src/NativelibMain.cpp \
-                           src/FirstTest.cpp \
-                           src/utils/LogUtils.c \
-                           src/MyNativeWindow.cpp \
-						   src/PlayerEx.cpp \
-						   src/VideoScale.cpp \
-                           src/Decoder.cpp
+LOCAL_SRC_FILES := src/AndroidJni.cpp \
+							src/utils/LogUtils.c \
+							src/utils/audiochunk.c \
+                           	src/FirstTest.cpp \
+                           	src/MyNativeWindow.cpp \
+						   	src/PlayerEx.cpp \
+						   	src/VideoScale.cpp \
+						   	src/AudioPlayer.cpp \
+                           	src/Decoder.cpp
 
 
 LOCAL_CPPFLAGS += -std=c++11
@@ -31,9 +36,9 @@ LOCAL_CPPFLAGS += -std=c++11
 
 $(warning "LOCAL_SHARED_LIBRARIES TARGET_ARCH_ABI $(TARGET_ARCH_ABI)")
 ifeq ($(TARGET_ARCH_ABI),arm64)
-	LOCAL_SHARED_LIBRARIES := libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2
+	LOCAL_SHARED_LIBRARIES := libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2 ijkj4a
 else
-	LOCAL_SHARED_LIBRARIES := libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2
+	LOCAL_SHARED_LIBRARIES := libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2 ijkj4a
 endif
 
 LOCAL_LDLIBS := -llog -landroid
@@ -127,3 +132,15 @@ LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 include $(BUILD_SHARED_LIBRARY)
 
 ##########################
+
+
+###########################
+#
+# sdl2 shared library
+#
+###########################
+include $(CLEAR_VARS)
+LOCAL_PATH := $(MY_LOCAL_PATH)
+
+#include $(call all-subdir-makefiles)
+include ${LOCAL_PATH}/ijkj4a/Android.mk

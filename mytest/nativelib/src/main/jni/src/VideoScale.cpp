@@ -31,6 +31,7 @@ int VideoScale::scale(AVFrame *pFrame) {
     int linesize[8] = {pFrame->linesize[0] * 4};
     sws_scale(mSwsContext, pFrame->data, pFrame->linesize, 0, pFrame->height,
               reinterpret_cast<unsigned char *const *>(mVideoBuffer), linesize);
+    return 1;
 }
 
 int VideoScale::setVideoGeometry(int videoWidth, int videoHeight){
@@ -54,6 +55,8 @@ int VideoScale::setVideoGeometry(int videoWidth, int videoHeight){
     mVideoBufferSize = av_image_get_buffer_size(AV_PIX_FMT_RGBA, mVideoWidth, mVideoHeight, 1);
 //    mVideoBuffer = static_cast<unsigned char *>(malloc(mVideoBufferSize));
     av_malloc(mVideoBufferSize);
+
+    return 1;
 }
 
 

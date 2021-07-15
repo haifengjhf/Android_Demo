@@ -6,6 +6,7 @@
 #define MY_TEST_APPLICATION_PLAYEREX_H
 #include "jni.h"
 #include "MyNativeWindow.h"
+#include "AudioPlayer.h"
 
 class PlayerEx {
 public:
@@ -22,6 +23,7 @@ protected:
 
 protected:
     MyNativeWindow *mNativeWindow;
+    AudioPlayer mAudioPlayer;
 };
 
 

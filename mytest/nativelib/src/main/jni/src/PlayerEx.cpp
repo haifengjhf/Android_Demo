@@ -42,6 +42,10 @@ int PlayerEx::playInner(const char *filePath) {
 //    uint8_t *pVideoOutBuffer = NULL;
 //    int videoBufferSize = 0;
 //    VideoDecorate clsVideoDecorate;
+    int channel_layout = AV_CH_LAYOUT_STEREO;
+    AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
+    AVSampleFormat outSampleFormat = AV_SAMPLE_FMT_S16;
+
 
     //other
     char info[1000]={0};
@@ -49,9 +53,12 @@ int PlayerEx::playInner(const char *filePath) {
     int time_start = clock();
     int ret;
     int got_picture;
-    uint8_t* pAudioOutBuffer;
-    AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
+    int audioBufferSize = DEFAULT_SAMPLE_RATE * DEFAULT_CHANNEL_SIZE * 2;//rate * channelsize * bytes per sample
+    uint8_t* pAudioOutBuffer = (uint8_t *)malloc(audioBufferSize) ;
+    uint8_t* pAudioOutTmpBuffer = (uint8_t *)malloc(audioBufferSize) ;
+
     bool isDone = true;
+
 
     //init ffmpeg
     av_log_set_callback(custom_log);
@@ -108,6 +115,8 @@ int PlayerEx::playInner(const char *filePath) {
     native_write_d("codec video ready");
 
     //audio
+    mAudioPlayer.createAudio();
+
     pAudioCodecContext = pFormatContext->streams[audioIndex]->codec;
     pAudioCodec = avcodec_find_decoder(pAudioCodecContext->codec_id);
     if (!pAudioCodec) {
@@ -119,7 +128,13 @@ int PlayerEx::playInner(const char *filePath) {
         goto EXIT0;
     }
 
-    native_write_d("codec ready");
+    pSwrContext = swr_alloc_set_opts(pSwrContext
+            ,channel_layout, outSampleFormat, DEFAULT_SAMPLE_RATE
+            ,pAudioCodecContext->channel_layout, pAudioCodecContext->sample_fmt, pAudioCodecContext->sample_rate
+            ,0, NULL);
+    swr_init(pSwrContext);
+
+    native_write_d("codec audio ready");
 
     pFrame = av_frame_alloc();
     pPacket = (AVPacket *)av_malloc(sizeof(AVPacket));
@@ -172,23 +187,41 @@ int PlayerEx::playInner(const char *filePath) {
                     case AV_PICTURE_TYPE_B:sprintf(pictype_str,"B");break;
                     default:snprintf(pictype_str,pictype_buffer_size,"Other %d",pFrame->pict_type);break;
                 }
-                native_print_d("av_read_frame Frame Index: %5d. Type:%s, pts:%lld,duration:%lld",frame_cnt,pictype_str,pFrame->pts,pFrame->pkt_duration);
+                native_print_d("av_read_video_frame Frame Index: %5d. Type:%s, pts:%lld,duration:%lld",frame_cnt,pictype_str,pFrame->pts,pFrame->pkt_duration);
                 frame_cnt++;
             }
             else{
-                native_print_d("av_read_frame Frame skip Index: %5d.",frame_cnt);
+                native_print_d("av_read_video_frame Frame skip Index: %5d.",frame_cnt);
             }
         }
         else if(pPacket->stream_index == audioIndex){
-//            result = avcodec_decode_audio4(pAudioCodecContext, pFrame, &got_picture, pPacket);
+            result = avcodec_decode_audio4(pAudioCodecContext, pFrame, &got_picture, pPacket);
+            native_print_d("av_read_audio_frame Frame Index: %5d. getaudio:%d, pts:%lld,duration:%lld",frame_cnt,got_picture,pFrame->pts,pFrame->pkt_duration);
+            if (got_picture) {
+                frame_cnt++;
 
-//            if (got_picture) {
-//                int size  = av_samples_get_buffer_size(NULL, pAudioCodecContext->channels, pFrame->nb_samples, AV_SAMPLE_FMT_S16, 1);
-//                pAudioOutBuffer = (uint8_t *)malloc(size);
-//                result = swr_convert(swrContext, (uint8_t **)&pAudioOutBuffer, size, (const uint8_t **) pFrame->data, pFrame->nb_samples);
-//                result = SDL_QueueAudio(audioDeviceId,pAudioOutBuffer,size);
-//                free(pAudioOutBuffer);
-//            }
+                int nb = swr_convert(pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
+                                     (const uint8_t **)(pFrame->data), pFrame->nb_samples);
+                if (nb < 0)
+                {
+                    break;
+                }
+                int out_buffer_size = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb, outSampleFormat, 1);
+                memcpy(pAudioOutTmpBuffer, pAudioOutBuffer, out_buffer_size);
+                int nb1 = 0, total_offset = out_buffer_size;
+                while ((nb1 = swr_convert(pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, NULL, 0)) > 0)
+                {
+                    int out_buffer_size1 = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb1, outSampleFormat, 1);
+                    memcpy(pAudioOutTmpBuffer + total_offset, pAudioOutBuffer, out_buffer_size1);
+                    total_offset += out_buffer_size1;
+                }
+
+//                result = swr_convert(pSwrContext, (uint8_t **)&pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, (const uint8_t **) pFrame->data, pFrame->nb_samples);
+//                int size  = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, result, outSampleFormat, 1);
+//
+                mAudioPlayer.flushDirectEx(pAudioOutTmpBuffer,total_offset);
+
+            }
         }
 
         av_free_packet(pPacket);
@@ -233,6 +266,11 @@ EXIT0:
     if(pVideoCodecContext){
         avcodec_close(pVideoCodecContext);
     }
+
+    if(pAudioOutBuffer){
+        free(pAudioOutBuffer);
+    }
+
     return result;
 }
 
