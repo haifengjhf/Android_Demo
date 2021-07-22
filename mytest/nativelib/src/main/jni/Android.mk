@@ -21,6 +21,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/src \
 LOCAL_SRC_FILES := src/AndroidJni.cpp \
 							src/utils/LogUtils.c \
 							src/utils/audiochunk.c \
+							src/utils/packet_queue.c \
                            	src/FirstTest.cpp \
                            	src/MyNativeWindow.cpp \
 						   	src/PlayerEx.cpp \
@@ -126,7 +127,6 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/ffmpeg/include $(LOCAL_PATH)/$(SDL_PATH)/inclu
 LOCAL_SRC_FILES := $(LOCAL_PATH)/$(SDL_PATH)/src/main/android/SDL_android_main.c \
 	$(LOCAL_PATH)/src/usermain/userplayer.c
 #	$(LOCAL_PATH)/src/usermain/defaultAudio.c
-#	$(LOCAL_PATH)/src/usermain/sdllesson.c
 LOCAL_SHARED_LIBRARIES := native-lib libavcodec libavfilter libavformat libavutil libswresample libswscale libpostproc SDL2
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 include $(BUILD_SHARED_LIBRARY)

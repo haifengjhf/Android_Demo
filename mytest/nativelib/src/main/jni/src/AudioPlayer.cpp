@@ -65,14 +65,14 @@ AudioPlayer::AudioPlayer() {
 
 AudioPlayer::~AudioPlayer() {
     freeAudioChunkQueue(&mAudioChunkQueue);
+}
 
+void AudioPlayer::releaseAudio(){
     JniEnv jniEnv(JNI_GetJvm());
 
     J4A_DeleteGlobalRef__p(jniEnv.getJniEnv(), reinterpret_cast<jobject *>(&mAudioByteArray));
 
     J4AC_android_media_AudioTrack__release__catchAll(jniEnv.getJniEnv(),(jobject)mAudioTrack);
-
-
 }
 
 int AudioPlayer::createAudio() {

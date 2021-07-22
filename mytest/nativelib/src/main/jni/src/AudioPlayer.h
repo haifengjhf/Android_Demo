@@ -13,7 +13,7 @@ extern "C" {
 
 #include "audiochunk.h"
 
-#define DEFAULT_SAMPLE_RATE 48000
+#define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_SIZE 2
 
 class AudioPlayer {
@@ -22,6 +22,8 @@ public:
     ~AudioPlayer();
 
     int createAudio();
+
+    void releaseAudio();
 
     int addAudioBuffer(uint8_t *buffer, int len);
 

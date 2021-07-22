@@ -46,15 +46,27 @@ JNINativeMethod jniNativeMethod[] = {
                 "(Ljava/lang/String;Ljava/lang/String;)I",
                 (void *) &Decoder::decodeToYUV
         },
+
+
+        {
+                "initPlayer",
+                "()V",
+                (void*)&PlayerEx::initPlayer
+        },
         {
             "play",
-            "(Ljava/lang/String;)I",
+            "(ILjava/lang/String;)I",
             (void*)&PlayerEx::play
         },
         {
             "setVideoSurface",
-                    "(Landroid/view/Surface;)I",
+                    "(ILandroid/view/Surface;)I",
                     (void*)&PlayerEx::setVideoSurface
+        },
+        {
+            "seek",
+            "(IJ)I",
+            (void*)&PlayerEx::seek
         }
 };
 

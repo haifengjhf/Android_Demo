@@ -3,6 +3,7 @@
 //
 
 
+#include <unistd.h>
 #include "PlayerEx.h"
 #include "VideoScale.h"
 
@@ -13,17 +14,36 @@ extern "C" {
 #include "LogUtils.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
-#include "libswscale/swscale.h"
+
 #include "libavutil/log.h"
 #include "libavutil/imgutils.h"
-#include <libswresample/swresample.h>
+
 #include "SDL.h"
 
-MyNativeWindow clsWindow;
-PlayerEx clsPlayer(&clsWindow);
+const int MAX_PLAYER_NUMBER = 2;
+PlayerEx* playerArray[MAX_PLAYER_NUMBER];
 
-PlayerEx::PlayerEx(MyNativeWindow* myNativeWindow) {
+PlayerEx::PlayerEx(MyNativeWindow* myNativeWindow):mNextIVideo(false),mVideoSeekTimeInMilsecond(0),mAudioSeekTimeInMilsecond(0),mStop(false){
     mNativeWindow = myNativeWindow;
+
+    packet_queue_init(&mVideoPacketQueue);
+    packet_queue_init(&mAudioPacketQueue);
+}
+
+PlayerEx::~PlayerEx(){
+    if(mNativeWindow){
+        delete mNativeWindow;
+        mNativeWindow = nullptr;
+    }
+
+    packet_queue_destroy(&mAudioPacketQueue);
+    packet_queue_destroy(&mAudioPacketQueue);
+}
+
+int PlayerEx::seekInner(long timeInMilSecond){
+    mAudioSeekTimeInMilsecond = timeInMilSecond;
+    mVideoSeekTimeInMilsecond = timeInMilSecond;
+    return 1;
 }
 
 int PlayerEx::playInner(const char *filePath) {
@@ -32,36 +52,15 @@ int PlayerEx::playInner(const char *filePath) {
     //ffmpeg struct
     AVFormatContext *pFormatContext = nullptr;
     int videoindex(-1),audioIndex(-1);
-    AVCodecContext *pVideoCodecContext(nullptr),*pAudioCodecContext(nullptr);
+
     AVCodec *pVideoCodec(nullptr),*pAudioCodec(nullptr);
-    AVFrame	*pFrame(nullptr);
-    AVPacket* pPacket(nullptr);
-
-    struct SwrContext *pSwrContext = swr_alloc();
-    struct SwsContext *pSwsContext;
-//    uint8_t *pVideoOutBuffer = NULL;
-//    int videoBufferSize = 0;
-//    VideoDecorate clsVideoDecorate;
-    int channel_layout = AV_CH_LAYOUT_STEREO;
-    AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
-    AVSampleFormat outSampleFormat = AV_SAMPLE_FMT_S16;
-
+    AVPacket* pPacket = av_packet_alloc();
 
     //other
     char info[1000]={0};
-    int frame_cnt = 0;
-    int time_start = clock();
-    int ret;
-    int got_picture;
-    int audioBufferSize = DEFAULT_SAMPLE_RATE * DEFAULT_CHANNEL_SIZE * 2;//rate * channelsize * bytes per sample
-    uint8_t* pAudioOutBuffer = (uint8_t *)malloc(audioBufferSize) ;
-    uint8_t* pAudioOutTmpBuffer = (uint8_t *)malloc(audioBufferSize) ;
-
-    bool isDone = true;
-
-
+    int packetCnt = 0;
     //init ffmpeg
-    av_log_set_callback(custom_log);
+//    av_log_set_callback(custom_log);
 
     av_register_all();
     avformat_network_init();
@@ -82,6 +81,7 @@ int PlayerEx::playInner(const char *filePath) {
         goto EXIT0;
     }
     native_write_d("avformat_find_stream_info ready");
+
 
     for(int i=0; i<pFormatContext->nb_streams; i++){
         native_print_d("streams nb_streams: %d, i :%d, type: %d",pFormatContext->nb_streams,i,pFormatContext->streams[i]->codec->codec_type);
@@ -112,10 +112,10 @@ int PlayerEx::playInner(const char *filePath) {
         goto EXIT0;
     }
 
-    native_write_d("codec video ready");
+    pSwsContext = sws_getContext(pVideoCodecContext->width, pVideoCodecContext->height, pVideoCodecContext->pix_fmt,
+                                 pVideoCodecContext->width,pVideoCodecContext->height, dstFormat, SWS_BICUBIC, NULL, NULL, NULL);
 
-    //audio
-    mAudioPlayer.createAudio();
+    native_write_d("codec video ready");
 
     pAudioCodecContext = pFormatContext->streams[audioIndex]->codec;
     pAudioCodec = avcodec_find_decoder(pAudioCodecContext->codec_id);
@@ -128,6 +128,7 @@ int PlayerEx::playInner(const char *filePath) {
         goto EXIT0;
     }
 
+    pSwrContext = swr_alloc();
     pSwrContext = swr_alloc_set_opts(pSwrContext
             ,channel_layout, outSampleFormat, DEFAULT_SAMPLE_RATE
             ,pAudioCodecContext->channel_layout, pAudioCodecContext->sample_fmt, pAudioCodecContext->sample_rate
@@ -136,24 +137,6 @@ int PlayerEx::playInner(const char *filePath) {
 
     native_write_d("codec audio ready");
 
-    pFrame = av_frame_alloc();
-    pPacket = (AVPacket *)av_malloc(sizeof(AVPacket));
-
-    pSwsContext = sws_getContext(pVideoCodecContext->width, pVideoCodecContext->height, pVideoCodecContext->pix_fmt,
-                                 pVideoCodecContext->width,pVideoCodecContext->height, dstFormat, SWS_BICUBIC, NULL, NULL, NULL);
-
-//    clsVideoDecorate.setVideoGeometry(pVideoCodecContext->width,pVideoCodecContext->height);
-//    videoBufferSize = av_image_get_buffer_size(AV_PIX_FMT_RGBA, pVideoCodecContext->width, pVideoCodecContext->height, 1);
-//    pVideoOutBuffer = (uint8_t *) av_malloc(videoBufferSize);
-
-
-    uint8_t *dst_data[AV_NUM_DATA_POINTERS];
-    int dst_linesize[AV_NUM_DATA_POINTERS];
-    ret = av_image_alloc(dst_data, dst_linesize,pVideoCodecContext->width,pVideoCodecContext->height, dstFormat, 1);
-    if (ret< 0) {
-        native_write_e( "Could not allocate destination image\n");
-        return -1;
-    }
 
     sprintf(info,   "\n[Input     ]%s\n", filePath);
     sprintf(info, "%s[Format    ]%s\n",info, pFormatContext->iformat->name);
@@ -162,104 +145,71 @@ int PlayerEx::playInner(const char *filePath) {
     sprintf(info, "%s[timebase]num:%d/den:%d\n",info, pFormatContext->streams[videoindex]->time_base.num,pFormatContext->streams[videoindex]->time_base.den);
     native_write_d(info);
 
+    //start audio ,video thread
+    pthread_t audioThread,videoThread;
+    pthread_create(&audioThread,NULL,PlayerEx::audio_thread,this);
+    pthread_create(&videoThread,NULL,PlayerEx::video_thread,this);
+
+    packet_queue_start(&mAudioPacketQueue);
+    packet_queue_start(&mVideoPacketQueue);
+
+
     while(av_read_frame(pFormatContext, pPacket)>=0){
+        JLOGD("av_read_frame %d,stream_index:%d",++packetCnt,pPacket->stream_index);
         if(pPacket->stream_index==videoindex){
-            ret = avcodec_decode_video2(pVideoCodecContext, pFrame, &got_picture, pPacket);
-            if(ret < 0){
-                native_write_e("Decode Error.\n");
-                return -1;
-            }
-            if(got_picture){
-                result = sws_scale(pSwsContext, pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height,
-                          dst_data, dst_linesize);
-                mNativeWindow->renderRGBA(dst_data,dst_linesize,pVideoCodecContext->height,av_get_bits_per_pixel(av_pix_fmt_desc_get(dstFormat)));
-
-                if(!isDone){
-                    isDone = true;
-                    fwrite(dst_data[0],1,pVideoCodecContext->width*pVideoCodecContext->height * av_get_bits_per_pixel(av_pix_fmt_desc_get(dstFormat))/8,dst_file);
+            if(mVideoSeekTimeInMilsecond > 0){
+                double timeBase = av_q2d(pFormatContext->streams[videoindex]->time_base) * 1000;
+                double startTime = pPacket->dts * timeBase;
+                double endTime = (pPacket->dts + pPacket->duration) * timeBase;
+                if(startTime <= mVideoSeekTimeInMilsecond && mVideoSeekTimeInMilsecond <= endTime){
+                    mVideoSeekTimeInMilsecond = 0;
+                    mNextIVideo = true;
                 }
-
-                const int pictype_buffer_size = 100;
-                char pictype_str[pictype_buffer_size]={0};
-                switch(pFrame->pict_type){
-                    case AV_PICTURE_TYPE_I:sprintf(pictype_str,"I");break;
-                    case AV_PICTURE_TYPE_P:sprintf(pictype_str,"P");break;
-                    case AV_PICTURE_TYPE_B:sprintf(pictype_str,"B");break;
-                    default:snprintf(pictype_str,pictype_buffer_size,"Other %d",pFrame->pict_type);break;
+                else{
+                    goto ContinueFlag;
                 }
-                native_print_d("av_read_video_frame Frame Index: %5d. Type:%s, pts:%lld,duration:%lld",frame_cnt,pictype_str,pFrame->pts,pFrame->pkt_duration);
-                frame_cnt++;
             }
-            else{
-                native_print_d("av_read_video_frame Frame skip Index: %5d.",frame_cnt);
-            }
+
+            packet_queue_put(&mVideoPacketQueue,pPacket);
         }
         else if(pPacket->stream_index == audioIndex){
-            result = avcodec_decode_audio4(pAudioCodecContext, pFrame, &got_picture, pPacket);
-            native_print_d("av_read_audio_frame Frame Index: %5d. getaudio:%d, pts:%lld,duration:%lld",frame_cnt,got_picture,pFrame->pts,pFrame->pkt_duration);
-            if (got_picture) {
-                frame_cnt++;
-
-                int nb = swr_convert(pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
-                                     (const uint8_t **)(pFrame->data), pFrame->nb_samples);
-                if (nb < 0)
-                {
-                    break;
+            if(mAudioSeekTimeInMilsecond > 0){
+                double timeBase = av_q2d(pFormatContext->streams[audioIndex]->time_base) * 1000;
+                double startTime = pPacket->dts * timeBase;
+                double endTime = (pPacket->dts + pPacket->duration) * timeBase;
+                if(startTime <= mAudioSeekTimeInMilsecond && mAudioSeekTimeInMilsecond <= endTime){
+                    mAudioSeekTimeInMilsecond = 0;
                 }
-                int out_buffer_size = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb, outSampleFormat, 1);
-                memcpy(pAudioOutTmpBuffer, pAudioOutBuffer, out_buffer_size);
-                int nb1 = 0, total_offset = out_buffer_size;
-                while ((nb1 = swr_convert(pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, NULL, 0)) > 0)
-                {
-                    int out_buffer_size1 = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb1, outSampleFormat, 1);
-                    memcpy(pAudioOutTmpBuffer + total_offset, pAudioOutBuffer, out_buffer_size1);
-                    total_offset += out_buffer_size1;
+                else{
+                    goto ContinueFlag;
                 }
-
-//                result = swr_convert(pSwrContext, (uint8_t **)&pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, (const uint8_t **) pFrame->data, pFrame->nb_samples);
-//                int size  = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, result, outSampleFormat, 1);
-//
-                mAudioPlayer.flushDirectEx(pAudioOutTmpBuffer,total_offset);
-
             }
-        }
 
-        av_free_packet(pPacket);
+            packet_queue_put(&mAudioPacketQueue,pPacket);
+        }
+        else{
+ContinueFlag:
+            av_free_packet(pPacket);
+        }
     }
-    //flush decoder
-    //FIX: Flush Frames remained in Codec
-    while (1) {
-        ret = avcodec_decode_video2(pVideoCodecContext, pFrame, &got_picture, pPacket);
-        if (ret < 0)
-            break;
-        if (!got_picture)
-            break;
 
-        result = sws_scale(pSwsContext, pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height,
-                           dst_data, dst_linesize);
-        mNativeWindow->renderRGBA(dst_data,dst_linesize,pVideoCodecContext->height,av_get_bits_per_pixel(av_pix_fmt_desc_get(dstFormat)));
+    JLOGD("play thread read file end wait thread exit");
 
-        char pictype_str[10]={0};
-        switch(pFrame->pict_type){
-            case AV_PICTURE_TYPE_I:sprintf(pictype_str,"I");break;
-            case AV_PICTURE_TYPE_P:sprintf(pictype_str,"P");break;
-            case AV_PICTURE_TYPE_B:sprintf(pictype_str,"B");break;
-            default:sprintf(pictype_str,"Other");break;
-        }
-        native_print_d("av_read_frame Frame Index: %5d. Type:%s, pts:%lld,duration:%lld",frame_cnt,pictype_str,pFrame->pts,pFrame->pkt_duration);
-        frame_cnt++;    }
+    //等待音视频线程退出，然后释放资源
+    pthread_join(audioThread,NULL);
+    pthread_join(videoThread,NULL);
 
 EXIT0:
+    JLOGD("play thread exit");
+
     if(dst_file){
         fclose(dst_file);
     }
 
-    if(pFrame != nullptr){
-        av_frame_free(&pFrame);
-    }
     if(pPacket != nullptr){
         av_packet_free(&pPacket);
     }
+
     if(pFormatContext != nullptr){
         avformat_close_input(&pFormatContext);
     }
@@ -267,19 +217,153 @@ EXIT0:
         avcodec_close(pVideoCodecContext);
     }
 
+    return result;
+}
+
+void* PlayerEx::video_thread(void *arg) {
+    PlayerEx* playerEx = (PlayerEx*)arg;
+    int ret ;
+    int got_picture;
+    AVFrame* pFrame = av_frame_alloc();
+    AVPacket* pPacket = av_packet_alloc();
+    uint8_t * dst_data[AV_NUM_DATA_POINTERS];
+    int dst_linesize[AV_NUM_DATA_POINTERS];
+    int frame_cnt = 0;
+
+    ret = av_image_alloc(dst_data, dst_linesize,playerEx->pVideoCodecContext->width,playerEx->pVideoCodecContext->height, playerEx->dstFormat, 1);
+    if (ret< 0) {
+        native_write_e( "Could not allocate destination image\n");
+        return NULL;
+    }
+
+    while (!playerEx->mStop){
+        ret = packet_queue_get(&playerEx->mVideoPacketQueue,pPacket,1,NULL);
+        if(ret > 0){
+            ret = avcodec_decode_video2(playerEx->pVideoCodecContext, pFrame, &got_picture, pPacket);
+            if(ret < 0){
+                native_write_e("Video Decode Error.\n");
+                goto ContinueFlag;
+            }
+            if(got_picture){
+                if(playerEx->mNextIVideo){
+                    if(pFrame->pict_type == AV_PICTURE_TYPE_I || pFrame->pict_type == AV_PICTURE_TYPE_SI){
+                        playerEx->mNextIVideo = false;
+                    }else{
+                        goto ContinueFlag;
+                    }
+                }
+
+                sws_scale(playerEx->pSwsContext, pFrame->data, pFrame->linesize, 0, playerEx->pVideoCodecContext->height,
+                                   dst_data, dst_linesize);
+
+                playerEx->mNativeWindow->renderRGBA(dst_data,dst_linesize,playerEx->pVideoCodecContext->height,av_get_bits_per_pixel(av_pix_fmt_desc_get(playerEx->dstFormat)));
+
+                native_print_d("av_read_video_frame Frame Index: %5d., pts:%lld,duration:%lld",frame_cnt,pFrame->pts,pFrame->pkt_duration);
+                frame_cnt++;
+            }
+        }
+        else if(ret == 0){
+
+        }
+        else{
+            break;
+        }
+
+ContinueFlag:
+        JLOGD("video loop one again");
+        av_free_packet(pPacket);
+    }
+
+    if(pFrame){
+        av_frame_free(&pFrame);
+    }
+
+    if(pPacket){
+        av_packet_free(&pPacket);
+    }
+
+    return NULL;
+}
+
+void* PlayerEx::audio_thread(void *arg) {
+    PlayerEx* playerEx = (PlayerEx*)arg;
+    AVFrame* pFrame = av_frame_alloc();
+    AVPacket* pPacket = av_packet_alloc();
+    int got_frame;
+    int ret ;
+    int audio_frame_cnt = 0;
+    int audioBufferSize = DEFAULT_SAMPLE_RATE * DEFAULT_CHANNEL_SIZE * 2;//rate * channelsize * bytes per sample
+    uint8_t* pAudioOutBuffer = (uint8_t *)malloc(audioBufferSize) ;
+    uint8_t* pAudioOutTmpBuffer = (uint8_t *)malloc(audioBufferSize) ;
+
+    //audio
+    playerEx->mAudioPlayer.createAudio();
+
+    while (!playerEx->mStop){
+        ret = packet_queue_get(&playerEx->mAudioPacketQueue,pPacket,1,NULL);
+        if(ret > 0){
+            avcodec_decode_audio4(playerEx->pAudioCodecContext, pFrame, &got_frame, pPacket);
+            JLOGD("av_read_audio_frame Frame Index: %5d. getaudio:%d, pts:%lld,duration:%lld",audio_frame_cnt,got_frame,pFrame->pts,pFrame->pkt_duration);
+            if (got_frame) {
+                audio_frame_cnt++;
+
+                int nb = swr_convert(playerEx->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
+                                     (const uint8_t **)(pFrame->data), pFrame->nb_samples);
+                if (nb < 0)
+                {
+                    goto ContinueFlag;
+                }
+                int out_buffer_size = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb, playerEx->outSampleFormat, 1);
+                memcpy(pAudioOutTmpBuffer, pAudioOutBuffer, out_buffer_size);
+                int nb1 = 0, total_offset = out_buffer_size;
+                while ((nb1 = swr_convert(playerEx->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, NULL, 0)) > 0)
+                {
+                    int out_buffer_size1 = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb1, playerEx->outSampleFormat, 1);
+                    memcpy(pAudioOutTmpBuffer + total_offset, pAudioOutBuffer, out_buffer_size1);
+                    total_offset += out_buffer_size1;
+                }
+                playerEx->mAudioPlayer.flushDirectEx(pAudioOutTmpBuffer,total_offset);
+            }
+            else{
+                native_write_e("Audio Decode Error.\n");
+                goto ContinueFlag;
+            }
+        }
+        else if(ret == 0){
+
+        }
+        else{
+            break;
+        }
+
+ContinueFlag:
+        JLOGD("audio loop one again");
+        av_free_packet(pPacket);
+    }
+
     if(pAudioOutBuffer){
         free(pAudioOutBuffer);
     }
 
-    return result;
+    if(pAudioOutTmpBuffer){
+        free(pAudioOutTmpBuffer);
+    }
+
+    if(pFrame){
+        av_frame_free(&pFrame);
+    }
+
+    if(pPacket){
+        av_packet_free(&pPacket);
+    }
+
+    playerEx->mAudioPlayer.releaseAudio();
+
+    return NULL;
 }
 
 int PlayerEx::android_render_rgb_on_rgb(ANativeWindow_Buffer *out_buffer, Uint8 **pixels ,int pitches[],int h, int bpp)
 {
-    // SDLTRACE("SDL_VoutAndroid: android_render_rgb_on_rgb(%p)", overlay);
-//    assert(overlay->format == SDL_FCC_RV16);
-//    assert(overlay->planes == 1);
-
     int min_height = out_buffer->height > h ? h:out_buffer->height;
     int dst_stride = out_buffer->stride;
     int src_line_size = pitches[0];
@@ -303,24 +387,33 @@ int PlayerEx::android_render_rgb_on_rgb(ANativeWindow_Buffer *out_buffer, Uint8 
     return 0;
 }
 
-int JNIEXPORT PlayerEx::setVideoSurface(JNIEnv *env,jobject thiz,jobject surface){
+int JNIEXPORT PlayerEx::setVideoSurface(JNIEnv *env,jobject thiz,jint playerIndex,jobject surface){
     native_print_d("setVideoSurface %d",&surface);
-    return clsWindow.setSurface(env,surface);
+    return playerArray[playerIndex]->getNativeWindow()->setSurface(env,surface);
 }
 
-int PlayerEx::play(JNIEnv *env, jobject thiz, jstring filePath) {
+int JNIEXPORT PlayerEx::seek(JNIEnv *env, jobject thiz,jint playerIndex, jlong timeInMilsecond) {
+    return playerArray[playerIndex]->seekInner(timeInMilsecond);
+}
+
+int PlayerEx::play(JNIEnv *env, jobject thiz,jint playerIndex, jstring filePath) {
 
     const char *pFilePath = env->GetStringUTFChars(filePath, 0);
     jclass thizClass = env->GetObjectClass(thiz);
     native_print_d("play %s",pFilePath);
 
-    int result = clsPlayer.playInner(pFilePath);
+    int result = playerArray[playerIndex]->playInner(pFilePath);
 
     env->ReleaseStringUTFChars(filePath, pFilePath);
     return result;
 }
 
-
+void JNIEXPORT PlayerEx::initPlayer(JNIEnv *env,jobject thiz){
+    for(int i = 0 ; i < MAX_PLAYER_NUMBER; i ++){
+        MyNativeWindow *myNativeWindow = new MyNativeWindow();
+        playerArray[i] = new PlayerEx(myNativeWindow);
+    }
+}
 #ifdef __cplusplus
 }
 #endif

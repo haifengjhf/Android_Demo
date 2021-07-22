@@ -25,6 +25,7 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nativeentrancetest);
         mNativeEntrance = new NativeEntrance();
+        mNativeEntrance.initPlayer();
 
         SurfaceView videoView1 = (SurfaceView)findViewById(R.id.video_view1);
         SurfaceHolder surfaceHolder1 = videoView1.getHolder();
@@ -97,8 +98,8 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                mNativeEntrance.setVideoSurface(mSurfaceHolder1.getSurface());
-                mNativeEntrance.play(inputurl);
+                mNativeEntrance.setVideoSurface(0,mSurfaceHolder1.getSurface());
+                mNativeEntrance.play(0,inputurl);
             }
         }).start();
     }
@@ -114,15 +115,30 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
         Log.i("inputurl",inputurl);
         Log.i("outputurl",outputurl);
 
+
         new Thread(new Runnable() {
             @Override
             public void run() {
-                mNativeEntrance.setVideoSurface(mSurfaceHolder2.getSurface());
-                mNativeEntrance.play(inputurl);
+                mNativeEntrance.setVideoSurface(0,mSurfaceHolder1.getSurface());
+                mNativeEntrance.play(0,inputurl);
             }
         }).start();
 
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    Thread.sleep(2000);
+                }catch (Exception e){}
 
+                mNativeEntrance.setVideoSurface(1,mSurfaceHolder2.getSurface());
+                mNativeEntrance.play(1,inputurl);
+            }
+        }).start();
+    }
+
+    public void onSeekBtnClick(View view){
+        mNativeEntrance.seek(0,20 * 1000);
     }
 
 }

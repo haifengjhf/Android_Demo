@@ -14,7 +14,11 @@ public class NativeEntrance {
 
     public native int decodeToYUV(String filePath,String outFilePath);
 
-    public native int play(String filePath);
+    public native void initPlayer();
 
-    public native int setVideoSurface(Surface surface);
+    public native int play(int index,String filePath);
+
+    public native int setVideoSurface(int index,Surface surface);
+
+    public native int seek(int index,long timeInMilSecond);
 }
