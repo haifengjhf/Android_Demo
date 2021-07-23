@@ -50,8 +50,7 @@ int PlayerEx::playInner(const char *filePath) {
     int result = -1;
 
     //ffmpeg struct
-    AVFormatContext *pFormatContext = nullptr;
-    int videoindex(-1),audioIndex(-1);
+
 
     AVCodec *pVideoCodec(nullptr),*pAudioCodec(nullptr);
     AVPacket* pPacket = av_packet_alloc();
@@ -64,44 +63,44 @@ int PlayerEx::playInner(const char *filePath) {
 
     av_register_all();
     avformat_network_init();
-    pFormatContext = avformat_alloc_context();
+    mFormatContext = avformat_alloc_context();
 
     FILE *dst_file = fopen("/storage/emulated/0/Android/data/com.jhf.test/0.rgb", "wb");
 
     native_write_d("av init ready");
 
-    if(avformat_open_input(&pFormatContext,filePath,NULL,NULL) != 0){
+    if(avformat_open_input(&mFormatContext,filePath,NULL,NULL) != 0){
         native_write_e("avformat_open_input error");
         goto EXIT0;
     }
     native_write_d("avformat_open_input ready");
 
-    if(avformat_find_stream_info(pFormatContext,NULL) != 0){
+    if(avformat_find_stream_info(mFormatContext,NULL) != 0){
         native_write_e("avformat_find_stream_info error");
         goto EXIT0;
     }
     native_write_d("avformat_find_stream_info ready");
 
 
-    for(int i=0; i<pFormatContext->nb_streams; i++){
-        native_print_d("streams nb_streams: %d, i :%d, type: %d",pFormatContext->nb_streams,i,pFormatContext->streams[i]->codec->codec_type);
-        if(pFormatContext->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO){
-            videoindex = i;
+    for(int i=0; i<mFormatContext->nb_streams; i++){
+        native_print_d("streams nb_streams: %d, i :%d, type: %d",mFormatContext->nb_streams,i,mFormatContext->streams[i]->codec->codec_type);
+        if(mFormatContext->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO){
+            mVideoIndex = i;
         }
-        else if(pFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO){
-            audioIndex = i;
+        else if(mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO){
+            mAudioIndex = i;
         }
     }
-    if(videoindex==-1){
+    if(mVideoIndex==-1){
         native_write_e("Couldn't find a video stream.\n");
         goto EXIT0;
     }
-    if(audioIndex==-1){
+    if(mAudioIndex==-1){
         native_write_e("Couldn't find a audio stream.\n");
         goto EXIT0;
     }
 
-    pVideoCodecContext = pFormatContext->streams[videoindex]->codec;
+    pVideoCodecContext = mFormatContext->streams[mVideoIndex]->codec;
     pVideoCodec = avcodec_find_decoder(pVideoCodecContext->codec_id);
     if(pVideoCodec == nullptr){
         native_write_e("avcodec_find_decoder error");
@@ -117,7 +116,7 @@ int PlayerEx::playInner(const char *filePath) {
 
     native_write_d("codec video ready");
 
-    pAudioCodecContext = pFormatContext->streams[audioIndex]->codec;
+    pAudioCodecContext = mFormatContext->streams[mAudioIndex]->codec;
     pAudioCodec = avcodec_find_decoder(pAudioCodecContext->codec_id);
     if (!pAudioCodec) {
         native_print_e("Unsupported codec!\n");
@@ -139,10 +138,10 @@ int PlayerEx::playInner(const char *filePath) {
 
 
     sprintf(info,   "\n[Input     ]%s\n", filePath);
-    sprintf(info, "%s[Format    ]%s\n",info, pFormatContext->iformat->name);
+    sprintf(info, "%s[Format    ]%s\n",info, mFormatContext->iformat->name);
     sprintf(info, "%s[Codec     ]%s\n",info, pVideoCodecContext->codec->name);
     sprintf(info, "%s[Resolution]%dx%d\n",info, pVideoCodecContext->width,pVideoCodecContext->height);
-    sprintf(info, "%s[timebase]num:%d/den:%d\n",info, pFormatContext->streams[videoindex]->time_base.num,pFormatContext->streams[videoindex]->time_base.den);
+    sprintf(info, "%s[timebase]num:%d/den:%d\n",info, mFormatContext->streams[mVideoIndex]->time_base.num,mFormatContext->streams[mVideoIndex]->time_base.den);
     native_write_d(info);
 
     //start audio ,video thread
@@ -153,12 +152,17 @@ int PlayerEx::playInner(const char *filePath) {
     packet_queue_start(&mAudioPacketQueue);
     packet_queue_start(&mVideoPacketQueue);
 
+    mCurSyncClock = 0;
+    mAudioLastPts = 0;
+    mAudioLastPlayClock = 0;
+    mVideoLastPts = 0;
+    mVideoLastPlayClock = 0;
 
-    while(av_read_frame(pFormatContext, pPacket)>=0){
+    while(av_read_frame(mFormatContext, pPacket)>=0){
         JLOGD("av_read_frame %d,stream_index:%d",++packetCnt,pPacket->stream_index);
-        if(pPacket->stream_index==videoindex){
+        if(pPacket->stream_index==mVideoIndex){
             if(mVideoSeekTimeInMilsecond > 0){
-                double timeBase = av_q2d(pFormatContext->streams[videoindex]->time_base) * 1000;
+                double timeBase = av_q2d(mFormatContext->streams[mVideoIndex]->time_base) * 1000;
                 double startTime = pPacket->dts * timeBase;
                 double endTime = (pPacket->dts + pPacket->duration) * timeBase;
                 if(startTime <= mVideoSeekTimeInMilsecond && mVideoSeekTimeInMilsecond <= endTime){
@@ -172,9 +176,9 @@ int PlayerEx::playInner(const char *filePath) {
 
             packet_queue_put(&mVideoPacketQueue,pPacket);
         }
-        else if(pPacket->stream_index == audioIndex){
+        else if(pPacket->stream_index == mAudioIndex){
             if(mAudioSeekTimeInMilsecond > 0){
-                double timeBase = av_q2d(pFormatContext->streams[audioIndex]->time_base) * 1000;
+                double timeBase = av_q2d(mFormatContext->streams[mAudioIndex]->time_base) * 1000;
                 double startTime = pPacket->dts * timeBase;
                 double endTime = (pPacket->dts + pPacket->duration) * timeBase;
                 if(startTime <= mAudioSeekTimeInMilsecond && mAudioSeekTimeInMilsecond <= endTime){
@@ -210,8 +214,8 @@ EXIT0:
         av_packet_free(&pPacket);
     }
 
-    if(pFormatContext != nullptr){
-        avformat_close_input(&pFormatContext);
+    if(mFormatContext != nullptr){
+        avformat_close_input(&mFormatContext);
     }
     if(pVideoCodecContext){
         avcodec_close(pVideoCodecContext);
@@ -221,42 +225,44 @@ EXIT0:
 }
 
 void* PlayerEx::video_thread(void *arg) {
-    PlayerEx* playerEx = (PlayerEx*)arg;
+    PlayerEx* player = (PlayerEx*)arg;
     int ret ;
     int got_picture;
     AVFrame* pFrame = av_frame_alloc();
-    AVPacket* pPacket = av_packet_alloc();
+    AVPacket packet;// = av_packet_alloc();
     uint8_t * dst_data[AV_NUM_DATA_POINTERS];
     int dst_linesize[AV_NUM_DATA_POINTERS];
     int frame_cnt = 0;
 
-    ret = av_image_alloc(dst_data, dst_linesize,playerEx->pVideoCodecContext->width,playerEx->pVideoCodecContext->height, playerEx->dstFormat, 1);
+    ret = av_image_alloc(dst_data, dst_linesize,player->pVideoCodecContext->width,player->pVideoCodecContext->height, player->dstFormat, 1);
     if (ret< 0) {
         native_write_e( "Could not allocate destination image\n");
         return NULL;
     }
 
-    while (!playerEx->mStop){
-        ret = packet_queue_get(&playerEx->mVideoPacketQueue,pPacket,1,NULL);
+    while (!player->mStop){
+        ret = packet_queue_get(&player->mVideoPacketQueue,&packet,1,NULL);
         if(ret > 0){
-            ret = avcodec_decode_video2(playerEx->pVideoCodecContext, pFrame, &got_picture, pPacket);
+            ret = avcodec_decode_video2(player->pVideoCodecContext, pFrame, &got_picture, &packet);
             if(ret < 0){
                 native_write_e("Video Decode Error.\n");
                 goto ContinueFlag;
             }
             if(got_picture){
-                if(playerEx->mNextIVideo){
+                if(player->mNextIVideo){
                     if(pFrame->pict_type == AV_PICTURE_TYPE_I || pFrame->pict_type == AV_PICTURE_TYPE_SI){
-                        playerEx->mNextIVideo = false;
+                        player->mNextIVideo = false;
                     }else{
                         goto ContinueFlag;
                     }
                 }
 
-                sws_scale(playerEx->pSwsContext, pFrame->data, pFrame->linesize, 0, playerEx->pVideoCodecContext->height,
+                sws_scale(player->pSwsContext, pFrame->data, pFrame->linesize, 0, player->pVideoCodecContext->height,
                                    dst_data, dst_linesize);
 
-                playerEx->mNativeWindow->renderRGBA(dst_data,dst_linesize,playerEx->pVideoCodecContext->height,av_get_bits_per_pixel(av_pix_fmt_desc_get(playerEx->dstFormat)));
+                player->videoTimeSync(pFrame);
+
+                player->mNativeWindow->renderRGBA(dst_data,dst_linesize,player->pVideoCodecContext->height,av_get_bits_per_pixel(av_pix_fmt_desc_get(player->dstFormat)));
 
                 native_print_d("av_read_video_frame Frame Index: %5d., pts:%lld,duration:%lld",frame_cnt,pFrame->pts,pFrame->pkt_duration);
                 frame_cnt++;
@@ -270,25 +276,22 @@ void* PlayerEx::video_thread(void *arg) {
         }
 
 ContinueFlag:
-        JLOGD("video loop one again");
-        av_free_packet(pPacket);
+        ;
+//        av_free_packet(pPacket);
     }
 
     if(pFrame){
         av_frame_free(&pFrame);
     }
 
-    if(pPacket){
-        av_packet_free(&pPacket);
-    }
 
     return NULL;
 }
 
 void* PlayerEx::audio_thread(void *arg) {
-    PlayerEx* playerEx = (PlayerEx*)arg;
+    PlayerEx* player = (PlayerEx*)arg;
     AVFrame* pFrame = av_frame_alloc();
-    AVPacket* pPacket = av_packet_alloc();
+    AVPacket packet;// = av_packet_alloc();
     int got_frame;
     int ret ;
     int audio_frame_cnt = 0;
@@ -297,32 +300,35 @@ void* PlayerEx::audio_thread(void *arg) {
     uint8_t* pAudioOutTmpBuffer = (uint8_t *)malloc(audioBufferSize) ;
 
     //audio
-    playerEx->mAudioPlayer.createAudio();
+    player->mAudioPlayer.createAudio();
 
-    while (!playerEx->mStop){
-        ret = packet_queue_get(&playerEx->mAudioPacketQueue,pPacket,1,NULL);
+    while (!player->mStop){
+        ret = packet_queue_get(&player->mAudioPacketQueue,&packet,1,NULL);
         if(ret > 0){
-            avcodec_decode_audio4(playerEx->pAudioCodecContext, pFrame, &got_frame, pPacket);
+            avcodec_decode_audio4(player->pAudioCodecContext, pFrame, &got_frame, &packet);
             JLOGD("av_read_audio_frame Frame Index: %5d. getaudio:%d, pts:%lld,duration:%lld",audio_frame_cnt,got_frame,pFrame->pts,pFrame->pkt_duration);
             if (got_frame) {
                 audio_frame_cnt++;
 
-                int nb = swr_convert(playerEx->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
+                int nb = swr_convert(player->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
                                      (const uint8_t **)(pFrame->data), pFrame->nb_samples);
                 if (nb < 0)
                 {
                     goto ContinueFlag;
                 }
-                int out_buffer_size = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb, playerEx->outSampleFormat, 1);
+                int out_buffer_size = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb, player->outSampleFormat, 1);
                 memcpy(pAudioOutTmpBuffer, pAudioOutBuffer, out_buffer_size);
                 int nb1 = 0, total_offset = out_buffer_size;
-                while ((nb1 = swr_convert(playerEx->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, NULL, 0)) > 0)
+                while ((nb1 = swr_convert(player->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE, NULL, 0)) > 0)
                 {
-                    int out_buffer_size1 = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb1, playerEx->outSampleFormat, 1);
+                    int out_buffer_size1 = av_samples_get_buffer_size(NULL, DEFAULT_CHANNEL_SIZE, nb1, player->outSampleFormat, 1);
                     memcpy(pAudioOutTmpBuffer + total_offset, pAudioOutBuffer, out_buffer_size1);
                     total_offset += out_buffer_size1;
                 }
-                playerEx->mAudioPlayer.flushDirectEx(pAudioOutTmpBuffer,total_offset);
+
+                player->audioTimeSync(pFrame);
+
+                player->mAudioPlayer.flushDirectEx(pAudioOutTmpBuffer,total_offset);
             }
             else{
                 native_write_e("Audio Decode Error.\n");
@@ -337,8 +343,8 @@ void* PlayerEx::audio_thread(void *arg) {
         }
 
 ContinueFlag:
-        JLOGD("audio loop one again");
-        av_free_packet(pPacket);
+        ;
+//        av_free_packet(pPacket);
     }
 
     if(pAudioOutBuffer){
@@ -353,13 +359,79 @@ ContinueFlag:
         av_frame_free(&pFrame);
     }
 
-    if(pPacket){
-        av_packet_free(&pPacket);
-    }
-
-    playerEx->mAudioPlayer.releaseAudio();
+    player->mAudioPlayer.releaseAudio();
 
     return NULL;
+}
+
+void PlayerEx::audioTimeSync(AVFrame* pFrame){
+    struct timespec timeSpec;
+    clock_gettime(CLOCK_MONOTONIC,&timeSpec);
+    double curTime = timeSpec.tv_sec + ((double)timeSpec.tv_nsec)/1000000000;
+    if(mCurSyncClock == 0){
+        //第一帧则直接播放
+        mAudioLastPlayClock = curTime;
+    }
+    else{
+        //timebase 使用stream 的timebase
+        double diff = (mAudioLastPlayClock + (double)(pFrame->pts - mAudioLastPts) * av_q2d(mFormatContext->streams[mAudioIndex]->time_base)) - curTime ;
+        JLOGD("audioTimeSync diff:%f,mAudioLastPlayClock:%f,curTime:%f, curPts:%lld, lastPts:%ld,timebase:%f",diff,mAudioLastPlayClock,curTime,pFrame->pts,mAudioLastPts,av_q2d(mFormatContext->streams[mAudioIndex]->time_base));
+        if(diff > 0){
+            //预期时间还未到，休眠一段间隔时间
+            timeSpec.tv_sec = (int)(diff);
+            timeSpec.tv_nsec = (long)((diff - timeSpec.tv_sec)*1000000000);
+            nanosleep(&timeSpec,NULL);
+
+            clock_gettime(CLOCK_MONOTONIC,&timeSpec);
+            curTime = timeSpec.tv_sec + (double)timeSpec.tv_nsec/1000000000;
+            mAudioLastPlayClock = curTime;
+        }
+        else{
+            //预期时间已经过了，马上播放
+            //如果是视频同步音频，所以音频不存在丢包
+            //如果是实时音频，则需要判断超时时间长度，时间超过阀值需要丢弃,咱不处理
+
+            mAudioLastPlayClock = curTime;
+        }
+    }
+
+    mAudioLastPts = pFrame->pts;
+
+    mCurSyncClock = pFrame->pts * av_q2d(mFormatContext->streams[mAudioIndex]->time_base);
+}
+
+void PlayerEx::videoTimeSync(AVFrame* pFrame){
+    struct timespec timeSpec;
+    clock_gettime(CLOCK_MONOTONIC,&timeSpec);
+    double curTime = timeSpec.tv_sec + (double)timeSpec.tv_nsec/1000000000;
+    if(mCurSyncClock == 0){
+        //第一帧则直接播放
+        mVideoLastPlayClock = curTime;
+    }
+    else{
+        //timebase 使用stream 的timebase
+        double diff = (pFrame->pts) * av_q2d(mFormatContext->streams[mVideoIndex]->time_base) - mCurSyncClock ;
+        JLOGD("videoTimeSync diff:%f,mVideoLastPlayClock:%f,curTime:%f, curPts:%lld, lastPts:%ld,timebase:%f",diff,mVideoLastPlayClock,curTime,pFrame->pts,mVideoLastPts,av_q2d(mFormatContext->streams[mVideoIndex]->time_base));
+        if(diff > 0){
+            //预期时间还未到，休眠一段间隔时间
+            timeSpec.tv_sec = (int)(diff);
+            timeSpec.tv_nsec = (long)((diff - timeSpec.tv_sec)*1000000000);
+            nanosleep(&timeSpec,NULL);
+
+            clock_gettime(CLOCK_MONOTONIC,&timeSpec);
+            curTime = timeSpec.tv_sec + (double)timeSpec.tv_nsec/1000000000;
+            mVideoLastPlayClock = curTime;
+        }
+        else{
+            //预期时间已经过了，马上播放
+            //如果是视频同步音频，所以音频不存在丢包
+            //如果是实时音频，则需要判断超时时间长度，时间超过阀值需要丢弃,咱不处理
+
+            mVideoLastPlayClock = curTime;
+        }
+    }
+
+    mVideoLastPts = pFrame->pts;
 }
 
 int PlayerEx::android_render_rgb_on_rgb(ANativeWindow_Buffer *out_buffer, Uint8 **pixels ,int pitches[],int h, int bpp)

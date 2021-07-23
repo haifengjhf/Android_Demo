@@ -4,6 +4,8 @@
 
 #ifndef MY_TEST_APPLICATION_PLAYEREX_H
 #define MY_TEST_APPLICATION_PLAYEREX_H
+
+
 #include "jni.h"
 #include "MyNativeWindow.h"
 #include "AudioPlayer.h"
@@ -15,6 +17,8 @@ extern "C" {
 #include "packet_queue.h"
 #include "libswscale/swscale.h"
 #include <libswresample/swresample.h>
+#include <libavformat/avformat.h>
+
 
 class PlayerEx {
 public:
@@ -45,6 +49,10 @@ protected:
 
     static void* video_thread(void *arg);
 
+    void audioTimeSync(AVFrame* pFrame);
+
+    void videoTimeSync(AVFrame* pFrame);
+
 protected:
     MyNativeWindow *mNativeWindow;
     AudioPlayer mAudioPlayer;
@@ -56,14 +64,28 @@ protected:
     PacketQueue mVideoPacketQueue;
     PacketQueue mAudioPacketQueue;
 
+    AVFormatContext *mFormatContext;
     AVCodecContext* pVideoCodecContext;
     AVCodecContext* pAudioCodecContext;
     SwsContext* pSwsContext;
     SwrContext* pSwrContext;
+    int mVideoIndex;
+    int mAudioIndex;
 
     AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
     int channel_layout = AV_CH_LAYOUT_STEREO;
     AVSampleFormat outSampleFormat = AV_SAMPLE_FMT_S16;
+
+    //视频同步音频,s
+    double mCurSyncClock;
+
+    //audio
+    long mAudioLastPts;
+    double mAudioLastPlayClock;
+
+    //video
+    long mVideoLastPts;
+    double mVideoLastPlayClock;
 };
 
 #ifdef __cplusplus
