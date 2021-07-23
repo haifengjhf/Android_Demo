@@ -32,11 +32,15 @@ public:
 
     static int JNIEXPORT seek(JNIEnv *env,jobject thiz,jint playerIndex,jlong timeInMilSecond);
 
+    static int JNIEXPORT setSpeed(JNIEnv *env,jobject thiz,jint playerIndex,jfloat speed);
+
     static void JNIEXPORT initPlayer(JNIEnv *env,jobject thiz);
 
     int playInner(const char* filePath);
 
     int seekInner(long timeInMilSecond);
+
+    int setSpeedReal(float speed);
 
     MyNativeWindow* getNativeWindow(){
         return mNativeWindow;
@@ -59,6 +63,8 @@ protected:
     bool mNextIVideo;
     long mVideoSeekTimeInMilsecond;
     long mAudioSeekTimeInMilsecond;
+    float mSpeed = 1.0f;
+    bool mSpeedChange = false;
     bool mStop;
 
     PacketQueue mVideoPacketQueue;

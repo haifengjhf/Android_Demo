@@ -52,6 +52,8 @@ enum Mode {
 extern "C" {
 #endif
 
+#include <j4a/j4a_allclasses.h>
+#include <j4au/class/android/media/AudioTrack.util.h>
 #include "j4a/class/android/media/AudioTrack.h"
 #include "j4a/class/android/os/Build.h"
 #include "JniEnv.h"
@@ -68,6 +70,7 @@ AudioPlayer::~AudioPlayer() {
 }
 
 void AudioPlayer::releaseAudio(){
+    JLOGE("AudioPlayer releaseAudio");
     JniEnv jniEnv(JNI_GetJvm());
 
     J4A_DeleteGlobalRef__p(jniEnv.getJniEnv(), reinterpret_cast<jobject *>(&mAudioByteArray));
@@ -76,16 +79,20 @@ void AudioPlayer::releaseAudio(){
 }
 
 int AudioPlayer::createAudio() {
+    JLOGE("AudioPlayer createAudio");
     JniEnv jniEnv(JNI_GetJvm());
 
     J4A_loadClass__J4AC_android_os_Build(jniEnv.getJniEnv());
     J4A_loadClass__J4AC_android_media_AudioTrack(jniEnv.getJniEnv());
+    J4A_loadClass__J4AC_android_media_PlaybackParams(jniEnv.getJniEnv());
+
     int audioFormat = ENCODING_PCM_16BIT;
     int channelConfig = CHANNEL_OUT_STEREO;
     mMinBufferSize = J4AC_AudioTrack__getMinBufferSize__catchAll(jniEnv.getJniEnv(),
                                                                  DEFAULT_SAMPLE_RATE,
                                                                  channelConfig,
                                                                  audioFormat);
+    mMinBufferSize *= 2;//2倍速
 
     mAudioTrack = J4AC_android_media_AudioTrack__AudioTrack__catchAll(jniEnv.getJniEnv(),STREAM_MUSIC
             ,DEFAULT_SAMPLE_RATE
@@ -190,6 +197,11 @@ int AudioPlayer::writeBuffer(uint8_t *buffer, int len){
     }
 
     return 1;
+}
+
+void AudioPlayer::setSpeed(float speed){
+    JniEnv jniEnv(JNI_GetJvm());
+    J4AC_android_media_AudioTrack__setSpeed(jniEnv.getJniEnv(),mAudioTrack,speed);
 }
 
 #ifdef __cplusplus

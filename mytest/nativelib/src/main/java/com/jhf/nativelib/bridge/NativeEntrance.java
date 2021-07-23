@@ -21,4 +21,6 @@ public class NativeEntrance {
     public native int setVideoSurface(int index,Surface surface);
 
     public native int seek(int index,long timeInMilSecond);
+
+    public native int setSpeed(int index,float speed);
 }

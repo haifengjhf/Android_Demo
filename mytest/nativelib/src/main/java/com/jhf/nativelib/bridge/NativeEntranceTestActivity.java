@@ -141,4 +141,8 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
         mNativeEntrance.seek(0,20 * 1000);
     }
 
+
+    public void onSetPeed(View view){
+        mNativeEntrance.setSpeed(0,1.5f);
+    }
 }

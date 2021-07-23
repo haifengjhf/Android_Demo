@@ -46,6 +46,20 @@ int PlayerEx::seekInner(long timeInMilSecond){
     return 1;
 }
 
+int PlayerEx::setSpeedReal(float speed){
+    if(mSpeedChange){
+        return 0;
+    }
+
+    if(mSpeed == speed){
+        return 0;
+    }
+
+    mSpeed = speed;
+    mSpeedChange = true;
+    return 1;
+}
+
 int PlayerEx::playInner(const char *filePath) {
     int result = -1;
 
@@ -310,6 +324,10 @@ void* PlayerEx::audio_thread(void *arg) {
             if (got_frame) {
                 audio_frame_cnt++;
 
+                if(player->mSpeedChange){
+                    player->mAudioPlayer.setSpeed(player->mSpeed);
+                    player->mSpeedChange = false;
+                }
                 int nb = swr_convert(player->pSwrContext, &pAudioOutBuffer, audioBufferSize/DEFAULT_CHANNEL_SIZE,
                                      (const uint8_t **)(pFrame->data), pFrame->nb_samples);
                 if (nb < 0)
@@ -374,7 +392,7 @@ void PlayerEx::audioTimeSync(AVFrame* pFrame){
     }
     else{
         //timebase 使用stream 的timebase
-        double diff = (mAudioLastPlayClock + (double)(pFrame->pts - mAudioLastPts) * av_q2d(mFormatContext->streams[mAudioIndex]->time_base)) - curTime ;
+        double diff = (mAudioLastPlayClock + (double)(pFrame->pts - mAudioLastPts) * av_q2d(mFormatContext->streams[mAudioIndex]->time_base)/mSpeed) - curTime ;
         JLOGD("audioTimeSync diff:%f,mAudioLastPlayClock:%f,curTime:%f, curPts:%lld, lastPts:%ld,timebase:%f",diff,mAudioLastPlayClock,curTime,pFrame->pts,mAudioLastPts,av_q2d(mFormatContext->streams[mAudioIndex]->time_base));
         if(diff > 0){
             //预期时间还未到，休眠一段间隔时间
@@ -397,7 +415,7 @@ void PlayerEx::audioTimeSync(AVFrame* pFrame){
 
     mAudioLastPts = pFrame->pts;
 
-    mCurSyncClock = pFrame->pts * av_q2d(mFormatContext->streams[mAudioIndex]->time_base);
+    mCurSyncClock = pFrame->pts * av_q2d(mFormatContext->streams[mAudioIndex]->time_base)/mSpeed;
 }
 
 void PlayerEx::videoTimeSync(AVFrame* pFrame){
@@ -410,7 +428,7 @@ void PlayerEx::videoTimeSync(AVFrame* pFrame){
     }
     else{
         //timebase 使用stream 的timebase
-        double diff = (pFrame->pts) * av_q2d(mFormatContext->streams[mVideoIndex]->time_base) - mCurSyncClock ;
+        double diff = (pFrame->pts) * av_q2d(mFormatContext->streams[mVideoIndex]->time_base)/mSpeed - mCurSyncClock ;
         JLOGD("videoTimeSync diff:%f,mVideoLastPlayClock:%f,curTime:%f, curPts:%lld, lastPts:%ld,timebase:%f",diff,mVideoLastPlayClock,curTime,pFrame->pts,mVideoLastPts,av_q2d(mFormatContext->streams[mVideoIndex]->time_base));
         if(diff > 0){
             //预期时间还未到，休眠一段间隔时间
@@ -486,6 +504,11 @@ void JNIEXPORT PlayerEx::initPlayer(JNIEnv *env,jobject thiz){
         playerArray[i] = new PlayerEx(myNativeWindow);
     }
 }
+
+int JNIEXPORT PlayerEx::setSpeed(JNIEnv *env,jobject thiz,jint playerIndex,jfloat speed){
+    return playerArray[playerIndex]->setSpeedReal(speed);
+}
+
 #ifdef __cplusplus
 }
 #endif

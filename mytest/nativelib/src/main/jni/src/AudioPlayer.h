@@ -35,6 +35,8 @@ public:
 
     void flushDirectEx(uint8_t *buffer, int len);
 
+    void setSpeed(float speed);
+
 protected:
     jobject mAudioTrack;
     int mMinBufferSize;

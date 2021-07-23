@@ -67,6 +67,11 @@ JNINativeMethod jniNativeMethod[] = {
             "seek",
             "(IJ)I",
             (void*)&PlayerEx::seek
+        },
+        {
+                "setSpeed",
+                "(IF)I",
+                (void*)&PlayerEx::setSpeed
         }
 };
 
