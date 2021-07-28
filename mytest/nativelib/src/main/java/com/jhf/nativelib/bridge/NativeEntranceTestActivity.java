@@ -84,6 +84,16 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
 
     }
 
+    public void onRTSPPlayBtnClick(View view){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mNativeEntrance.setVideoSurface(0,mSurfaceHolder1.getSurface());
+                mNativeEntrance.play(0,"rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13");
+            }
+        }).start();
+    }
+
     public void onPlayBtn1Click(View view){
         String folderurl= this.getExternalCacheDir().getParent();
         String urltext_input="sintel.mp4";

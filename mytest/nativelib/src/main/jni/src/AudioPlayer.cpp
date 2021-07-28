@@ -92,7 +92,7 @@ int AudioPlayer::createAudio() {
                                                                  DEFAULT_SAMPLE_RATE,
                                                                  channelConfig,
                                                                  audioFormat);
-    mMinBufferSize *= 2;//2倍速
+    mMinBufferSize *= 2;//支持最大 2倍速
 
     mAudioTrack = J4AC_android_media_AudioTrack__AudioTrack__catchAll(jniEnv.getJniEnv(),STREAM_MUSIC
             ,DEFAULT_SAMPLE_RATE

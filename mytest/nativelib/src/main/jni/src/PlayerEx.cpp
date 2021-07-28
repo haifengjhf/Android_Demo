@@ -23,11 +23,58 @@ extern "C" {
 const int MAX_PLAYER_NUMBER = 2;
 PlayerEx* playerArray[MAX_PLAYER_NUMBER];
 
+#define ALPHA_BLEND(a, oldp, newp, s)\
+((((oldp << s) * (255 - (a))) + (newp * (a))) / (255 << s))
+
+static void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int imgh)
+{
+    int x, y, Y, U, V, A;
+    uint8_t *lum, *cb, *cr;
+    int dstx, dsty, dstw, dsth;
+    const AVPicture *src = &rect->pict;
+
+    dstw = av_clip(rect->w, 0, imgw);
+    dsth = av_clip(rect->h, 0, imgh);
+    dstx = av_clip(rect->x, 0, imgw - dstw);
+    dsty = av_clip(rect->y, 0, imgh - dsth);
+    lum = dst->data[0] + dstx + dsty * dst->linesize[0];
+    cb  = dst->data[1] + dstx/2 + (dsty >> 1) * dst->linesize[1];
+    cr  = dst->data[2] + dstx/2 + (dsty >> 1) * dst->linesize[2];
+
+    for (y = 0; y<dsth; y++) {
+        for (x = 0; x<dstw; x++) {
+            Y = src->data[0][x + y*src->linesize[0]];
+            A = src->data[3][x + y*src->linesize[3]];
+            lum[0] = ALPHA_BLEND(A, lum[0], Y, 0);
+            lum++;
+        }
+        lum += dst->linesize[0] - dstw;
+    }
+
+    for (y = 0; y<dsth/2; y++) {
+        for (x = 0; x<dstw/2; x++) {
+            U = src->data[1][x + y*src->linesize[1]];
+            V = src->data[2][x + y*src->linesize[2]];
+            A = src->data[3][2*x     +  2*y   *src->linesize[3]]
+                + src->data[3][2*x + 1 +  2*y   *src->linesize[3]]
+                + src->data[3][2*x + 1 + (2*y+1)*src->linesize[3]]
+                + src->data[3][2*x     + (2*y+1)*src->linesize[3]];
+            cb[0] = ALPHA_BLEND(A>>2, cb[0], U, 0);
+            cr[0] = ALPHA_BLEND(A>>2, cr[0], V, 0);
+            cb++;
+            cr++;
+        }
+        cb += dst->linesize[1] - dstw/2;
+        cr += dst->linesize[2] - dstw/2;
+    }
+}
+
 PlayerEx::PlayerEx(MyNativeWindow* myNativeWindow):mNextIVideo(false),mVideoSeekTimeInMilsecond(0),mAudioSeekTimeInMilsecond(0),mStop(false){
     mNativeWindow = myNativeWindow;
 
     packet_queue_init(&mVideoPacketQueue);
     packet_queue_init(&mAudioPacketQueue);
+    packet_queue_init(&mSubTitlePacketQueue);
 }
 
 PlayerEx::~PlayerEx(){
@@ -66,7 +113,7 @@ int PlayerEx::playInner(const char *filePath) {
     //ffmpeg struct
 
 
-    AVCodec *pVideoCodec(nullptr),*pAudioCodec(nullptr);
+    AVCodec *pVideoCodec(nullptr),*pAudioCodec(nullptr),*pSubtitleCodec(nullptr);
     AVPacket* pPacket = av_packet_alloc();
 
     //other
@@ -78,8 +125,6 @@ int PlayerEx::playInner(const char *filePath) {
     av_register_all();
     avformat_network_init();
     mFormatContext = avformat_alloc_context();
-
-    FILE *dst_file = fopen("/storage/emulated/0/Android/data/com.jhf.test/0.rgb", "wb");
 
     native_write_d("av init ready");
 
@@ -104,6 +149,9 @@ int PlayerEx::playInner(const char *filePath) {
         else if(mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO){
             mAudioIndex = i;
         }
+        else if(mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE){
+            mSubTitleIndex = i;
+        }
     }
     if(mVideoIndex==-1){
         native_write_e("Couldn't find a video stream.\n");
@@ -112,6 +160,16 @@ int PlayerEx::playInner(const char *filePath) {
     if(mAudioIndex==-1){
         native_write_e("Couldn't find a audio stream.\n");
         goto EXIT0;
+    }
+
+    //subtitle
+    if(mSubTitleIndex != -1){
+        pSubtitleCodecContext = mFormatContext->streams[mSubTitleIndex]->codec;
+        pSubtitleCodec = avcodec_find_decoder(pSubtitleCodecContext->codec_id);
+        result = avcodec_open2(pSubtitleCodecContext, pSubtitleCodec, NULL);
+        if(result != 0 ){
+            JLOGE("subtitle open error :%d",result);
+        }
     }
 
     pVideoCodecContext = mFormatContext->streams[mVideoIndex]->codec;
@@ -165,6 +223,7 @@ int PlayerEx::playInner(const char *filePath) {
 
     packet_queue_start(&mAudioPacketQueue);
     packet_queue_start(&mVideoPacketQueue);
+    packet_queue_start(&mSubTitlePacketQueue);
 
     mCurSyncClock = 0;
     mAudioLastPts = 0;
@@ -205,6 +264,9 @@ int PlayerEx::playInner(const char *filePath) {
 
             packet_queue_put(&mAudioPacketQueue,pPacket);
         }
+        else if(pPacket->stream_index == mSubTitleIndex){
+            packet_queue_put(&mSubTitlePacketQueue,pPacket);
+        }
         else{
 ContinueFlag:
             av_free_packet(pPacket);
@@ -219,10 +281,6 @@ ContinueFlag:
 
 EXIT0:
     JLOGD("play thread exit");
-
-    if(dst_file){
-        fclose(dst_file);
-    }
 
     if(pPacket != nullptr){
         av_packet_free(&pPacket);
@@ -241,9 +299,13 @@ EXIT0:
 void* PlayerEx::video_thread(void *arg) {
     PlayerEx* player = (PlayerEx*)arg;
     int ret ;
-    int got_picture;
+    int got_picture,got_subtitle;
     AVFrame* pFrame = av_frame_alloc();
     AVPacket packet;// = av_packet_alloc();
+    AVPacket subTitlePacket ;
+    AVSubtitle avSubtitle;
+    AVPicture pict;
+
     uint8_t * dst_data[AV_NUM_DATA_POINTERS];
     int dst_linesize[AV_NUM_DATA_POINTERS];
     int frame_cnt = 0;
@@ -273,6 +335,72 @@ void* PlayerEx::video_thread(void *arg) {
 
                 sws_scale(player->pSwsContext, pFrame->data, pFrame->linesize, 0, player->pVideoCodecContext->height,
                                    dst_data, dst_linesize);
+
+                //subtitle
+                if(player->mSubTitleIndex != -1){
+                    ret = packet_queue_get(&player->mSubTitlePacketQueue,&subTitlePacket,0,NULL);
+                    if(ret > 0){
+                        ret = avcodec_decode_subtitle2(player->pSubtitleCodecContext, &avSubtitle, &got_subtitle, &subTitlePacket);
+                        if(got_subtitle){
+                            for (int i = 0; i < avSubtitle.num_rects; i++)
+                            {
+                                int in_w = avSubtitle.rects[i]->w;
+                                int in_h = avSubtitle.rects[i]->h;
+                                int subw = player->pSubtitleCodecContext->width  ? player->pSubtitleCodecContext->width  : player->pVideoCodecContext->width;
+                                int subh = player->pSubtitleCodecContext->height ? player->pSubtitleCodecContext->height : player->pVideoCodecContext->height;
+                                int out_w = player->pVideoCodecContext->width  ? in_w * player->pVideoCodecContext->width  / subw : in_w;
+                                int out_h = player->pVideoCodecContext->height ? in_h * player->pVideoCodecContext->height / subh : in_h;
+                                AVPicture newpic;
+
+                                //can not use avpicture_alloc as it is not compatible with avsubtitle_free()
+                                av_image_fill_linesizes(newpic.linesize, AV_PIX_FMT_YUVA420P, out_w);
+                                newpic.data[0] = (uint8_t *)av_malloc(newpic.linesize[0] * out_h);
+                                newpic.data[3] = (uint8_t *)av_malloc(newpic.linesize[3] * out_h);
+                                newpic.data[1] = (uint8_t *)av_malloc(newpic.linesize[1] * ((out_h+1)/2));
+                                newpic.data[2] = (uint8_t *)av_malloc(newpic.linesize[2] * ((out_h+1)/2));
+
+                                player->pSubSwsContext = sws_getCachedContext(player->pSubSwsContext,
+                                                                              in_w, in_h, AV_PIX_FMT_PAL8, out_w, out_h,
+                                                                              AV_PIX_FMT_YUVA420P, SWS_BICUBIC, NULL, NULL, NULL);
+                                if (!player->pSubSwsContext || !newpic.data[0] || !newpic.data[3] ||
+                                    !newpic.data[1] || !newpic.data[2]
+                                        ) {
+                                    av_log(NULL, AV_LOG_FATAL, "Cannot initialize the sub conversion context\n");
+                                    exit(1);
+                                }
+                                sws_scale(player->pSubSwsContext,
+                                          avSubtitle.rects[i]->pict.data, avSubtitle.rects[i]->pict.linesize,
+                                          0, in_h, newpic.data, newpic.linesize);
+
+                                av_free(avSubtitle.rects[i]->pict.data[0]);
+                                av_free(avSubtitle.rects[i]->pict.data[1]);
+                                avSubtitle.rects[i]->pict = newpic;
+                                avSubtitle.rects[i]->w = out_w;
+                                avSubtitle.rects[i]->h = out_h;
+                                avSubtitle.rects[i]->x = avSubtitle.rects[i]->x * out_w / in_w;
+                                avSubtitle.rects[i]->y = avSubtitle.rects[i]->y * out_h / in_h;
+
+
+                                if (pFrame->pts >= avSubtitle.pts + ((float) avSubtitle.start_display_time / 1000)) {
+
+                                    pict.data[0] = dst_data[0];
+                                    pict.data[1] = dst_data[2];
+                                    pict.data[2] = dst_data[1];
+
+                                    pict.linesize[0] = dst_linesize[0];
+                                    pict.linesize[1] = dst_linesize[2];
+                                    pict.linesize[2] = dst_linesize[1];
+
+                                    for (i = 0; i < avSubtitle.num_rects; i++)
+                                        blend_subrect(&pict,avSubtitle.rects[i],
+                                                      player->pVideoCodecContext->width, player->pVideoCodecContext->height);
+                                }
+                            }
+                        }
+                    }
+                }
+
+
 
                 player->videoTimeSync(pFrame);
 

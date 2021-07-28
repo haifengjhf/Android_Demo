@@ -32,7 +32,7 @@
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="playTwoVideo"
+                android:text="playTwo"
                 android:onClick="onPlayBtn2Click"
                 />
 
@@ -42,14 +42,33 @@
                 android:text="setSpeed1P5"
                 android:onClick="onSetPeed"
                 />
-
     </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="rtsp"
+                android:onClick="onRTSPPlayBtnClick"
+                />
+    </LinearLayout>
+
 
 
     <SurfaceView
             android:id="@+id/video_view1"
             android:layout_width="match_parent"
             android:layout_height="320dp"/>
+
+    <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:src="@android:color/white"
+            />
 
     <SurfaceView
             android:id="@+id/video_view2"

@@ -69,14 +69,20 @@ protected:
 
     PacketQueue mVideoPacketQueue;
     PacketQueue mAudioPacketQueue;
+    PacketQueue mSubTitlePacketQueue;
 
-    AVFormatContext *mFormatContext;
-    AVCodecContext* pVideoCodecContext;
-    AVCodecContext* pAudioCodecContext;
-    SwsContext* pSwsContext;
-    SwrContext* pSwrContext;
+    AVFormatContext *mFormatContext = nullptr;
+    AVCodecContext* pVideoCodecContext = nullptr;
+    AVCodecContext* pAudioCodecContext = nullptr;
+    AVCodecContext* pSubtitleCodecContext = nullptr;
+
+    SwsContext* pSwsContext = nullptr;
+    SwrContext* pSwrContext = nullptr;
+    SwsContext* pSubSwsContext = nullptr;
+
     int mVideoIndex;
     int mAudioIndex;
+    int mSubTitleIndex = -1;
 
     AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
     int channel_layout = AV_CH_LAYOUT_STEREO;
