@@ -12,12 +12,13 @@ APP_PLATFORM = android-19
 APP_STL += c++_shared
 
 APP_CPPFLAGS += -std=c++11
-APP_CPPFLAGS += -fsanitize=address -fno-omit-frame-pointer
 
-#APP_CFLAGS += -std=c99
-APP_CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+APP_CFLAGS += -std=c99
 
-APP_LDFLAGS += -fsanitize=address
+#Adress Sanitize config
+#APP_CPPFLAGS += -fsanitize=address -fno-omit-frame-pointer
+#APP_CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+#APP_LDFLAGS += -fsanitize=address
 
 #NDK_TOOLCHAIN := arm-linux-androideabi-4.9
 #NDK_TOOLCHAIN_VERSION := clang
