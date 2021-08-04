@@ -4,6 +4,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <pthread.h>
 
 /*!
  * \brief Represents an audio chunk.

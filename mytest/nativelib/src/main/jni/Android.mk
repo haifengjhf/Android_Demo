@@ -2,6 +2,8 @@ MY_LOCAL_PATH := $(call my-dir)
 
 LOCAL_PATH := $(MY_LOCAL_PATH)
 
+LOCAL_ARM_MODE := arm
+
 ###########################
 #
 # native-lib shared library

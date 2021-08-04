@@ -35,6 +35,7 @@ JNIEXPORT void FirstTest::ffmpegTest(JNIEnv *env, jobject thiz) {
 
     const std::string hello = avcodec_configuration();
 
+    delete hello.c_str();
     native_print_d("format %s",hello.c_str());
 }
 
