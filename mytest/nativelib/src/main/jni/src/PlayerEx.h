@@ -98,6 +98,8 @@ protected:
     //video
     long mVideoLastPts;
     double mVideoLastPlayClock;
+
+    int customInput = 1;
 };
 
 #ifdef __cplusplus

@@ -96,14 +96,12 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
 
     public void onPlayBtn1Click(View view){
         String folderurl= this.getExternalCacheDir().getParent();
-        String urltext_input="sintel.mp4";
+        String urltext_input="cuc60anniversary_start.mkv";
+//        String urltext_input="sintel.mp4";
+
         String inputurl=folderurl+"/"+urltext_input;
 
-        String urltext_output="sintel.yuv";
-        String outputurl=folderurl+"/"+urltext_output;
-
         Log.i("inputurl",inputurl);
-        Log.i("outputurl",outputurl);
 
         new Thread(new Runnable() {
             @Override
