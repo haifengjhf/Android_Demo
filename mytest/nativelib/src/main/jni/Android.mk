@@ -17,13 +17,32 @@ LOCAL_MODULE := native-lib
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/src \
 					$(LOCAL_PATH)/src/utils \
+					$(LOCAL_PATH)/src/example \
 					$(LOCAL_PATH)/ffmpeg/include \
 					$(LOCAL_PATH)/ijkj4a
+
+
 
 LOCAL_SRC_FILES := src/AndroidJni.cpp \
 							src/utils/LogUtils.c \
 							src/utils/audiochunk.c \
 							src/utils/packet_queue.c \
+							src/example/decoding_encoding.c \
+							src/example/demuxing_decoding.c \
+							src/example/extract_mvs.c \
+							src/example/filter_audio.c \
+							src/example/filtering_audio.c \
+							src/example/filtering_video.c \
+							src/example/http_multiclient.c \
+							src/example/metadata.c \
+							src/example/muxing.c \
+							src/example/qsvdec.c \
+							src/example/remuxing.c \
+							src/example/resampling_audio.c \
+							src/example/scaling_video.c \
+							src/example/transcode_aac.c \
+							src/example/transcoding.c \
+							src/example/examplemain.cpp \
                            	src/FirstTest.cpp \
                            	src/MyNativeWindow.cpp \
 						   	src/PlayerEx.cpp \

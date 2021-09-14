@@ -21,6 +21,9 @@ extern "C" {
 #include "SDL.h"
 #include <libavutil/file.h>
 
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 
 const int MAX_PLAYER_NUMBER = 2;
 PlayerEx* playerArray[MAX_PLAYER_NUMBER];
@@ -677,6 +680,64 @@ void PlayerEx::videoTimeSync(AVFrame* pFrame){
     }
 
     mVideoLastPts = pFrame->pts;
+}
+
+int PlayerEx::init_filters(const char *filters_descr)
+{
+//    char args[512];
+//    int ret;
+//    AVFilter *buffersrc  = avfilter_get_by_name("buffer");
+//    AVFilter *buffersink = avfilter_get_by_name("ffbuffersink");
+//    AVFilterInOut *outputs = avfilter_inout_alloc();
+//    AVFilterInOut *inputs  = avfilter_inout_alloc();
+//    enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE };
+//    AVBufferSinkParams *buffersink_params;
+//
+//    filter_graph = avfilter_graph_alloc();
+//
+//    /* buffer video source: the decoded frames from the decoder will be inserted here. */
+//    snprintf(args, sizeof(args),
+//             "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+//             pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
+//             pCodecCtx->time_base.num, pCodecCtx->time_base.den,
+//             pCodecCtx->sample_aspect_ratio.num, pCodecCtx->sample_aspect_ratio.den);
+//
+//    ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
+//                                       args, NULL, filter_graph);
+//    if (ret < 0) {
+//        printf("Cannot create buffer source\n");
+//        return ret;
+//    }
+//
+//    /* buffer video sink: to terminate the filter chain. */
+//    buffersink_params = av_buffersink_params_alloc();
+//    buffersink_params->pixel_fmts = pix_fmts;
+//    ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
+//                                       NULL, buffersink_params, filter_graph);
+//    av_free(buffersink_params);
+//    if (ret < 0) {
+//        printf("Cannot create buffer sink\n");
+//        return ret;
+//    }
+//
+//    /* Endpoints for the filter graph. */
+//    outputs->name       = av_strdup("in");
+//    outputs->filter_ctx = buffersrc_ctx;
+//    outputs->pad_idx    = 0;
+//    outputs->next       = NULL;
+//
+//    inputs->name       = av_strdup("out");
+//    inputs->filter_ctx = buffersink_ctx;
+//    inputs->pad_idx    = 0;
+//    inputs->next       = NULL;
+//
+//    if ((ret = avfilter_graph_parse_ptr(filter_graph, filters_descr,
+//                                        &inputs, &outputs, NULL)) < 0)
+//        return ret;
+//
+//    if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
+//        return ret;
+    return 0;
 }
 
 int PlayerEx::android_render_rgb_on_rgb(ANativeWindow_Buffer *out_buffer, Uint8 **pixels ,int pitches[],int h, int bpp)

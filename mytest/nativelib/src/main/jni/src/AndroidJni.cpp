@@ -15,12 +15,14 @@
 #include "PlayerEx.h"
 #include "AndroidJni.h"
 //#include "usermain/Player.h"
+#include "example/examplemain.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "LogUtils.h"
+
 
 
 static JavaVM *g_jvm;
@@ -72,7 +74,23 @@ JNINativeMethod jniNativeMethod[] = {
                 "setSpeed",
                 "(IF)I",
                 (void*)&PlayerEx::setSpeed
+        },
+        {
+            "exampelEncodingAndDecoding",
+            "(Ljava/lang/String;Ljava/lang/String;)I",
+                (void*)example_of_decoding_encoding
+        },
+        {
+            "exampelDemuxingAndDecoding",
+                    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I",
+                    (void*)example_of_demuxing_decoding
+        },
+        {
+                "exampelExtractMVS",
+                "(Ljava/lang/String;)I",
+                (void*)example_of_extract_mvs
         }
+
 };
 
 

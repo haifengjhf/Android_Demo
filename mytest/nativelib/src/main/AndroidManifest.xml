@@ -33,6 +33,8 @@
         <activity android:name=".bridge.NativeEntranceTestActivity"
                 android:screenOrientation="portrait"
                 />
+
+        <activity android:name=".bridge.NativeExampleActivity"/>
     </application>
 
 </manifest>

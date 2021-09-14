@@ -94,11 +94,14 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
         }).start();
     }
 
+
+    ///sdcard/Android/data/com.jhf.test/VGA_30fps_512vbrate.mp4
     public void onPlayBtn1Click(View view){
         String folderurl= this.getExternalCacheDir().getParent();
-        String urltext_input="cuc60anniversary_start.mkv";
-//        String urltext_input="sintel.mp4";
+//        String urltext_input="cuc60anniversary_start.mkv";
+        String urltext_input="sintel.mp4";
 
+//        String urltext_input="VGA_30fps_512vbrate.mp4";
         String inputurl=folderurl+"/"+urltext_input;
 
         Log.i("inputurl",inputurl);
@@ -153,4 +156,5 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
     public void onSetPeed(View view){
         mNativeEntrance.setSpeed(0,1.5f);
     }
+
 }

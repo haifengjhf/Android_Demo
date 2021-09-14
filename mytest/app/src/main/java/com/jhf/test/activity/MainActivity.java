@@ -1,6 +1,7 @@
 package com.jhf.test.activity;
 
 import com.jhf.nativelib.bridge.NativeEntranceTestActivity;
+import com.jhf.nativelib.bridge.NativeExampleActivity;
 import com.jhf.nativelib.bridge.sdl.SDLActivity;
 import com.jhf.test.R;
 
@@ -103,6 +104,22 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, NativeEntranceTestActivity.class);
         startActivity(intent);
     }
+
+    public void onNativeExampleBtnClick(View view){
+        Intent intent = new Intent(this, NativeExampleActivity.class);
+        startActivity(intent);
+    }
+
+    public void onMediaRecordBtnClick(View view){
+        Intent intent = new Intent(this, MediaRecorderActivity.class);
+        startActivity(intent);
+    }
+
+    public void onBannerBtnClick(View view){
+        Intent intent = new Intent(this, BannerActivity.class);
+        startActivity(intent);
+    }
+
 
     public void requestStoragePermission(){
         Uri uri1 = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AAndroid%2Fdata");

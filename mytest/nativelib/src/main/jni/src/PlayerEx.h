@@ -42,6 +42,8 @@ public:
 
     int setSpeedReal(float speed);
 
+    int init_filters(const char *filters_descr);
+
     MyNativeWindow* getNativeWindow(){
         return mNativeWindow;
     };
@@ -99,7 +101,7 @@ protected:
     long mVideoLastPts;
     double mVideoLastPlayClock;
 
-    int customInput = 1;
+    int customInput = 0;
 };
 
 #ifdef __cplusplus

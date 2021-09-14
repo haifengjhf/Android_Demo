@@ -24,4 +24,25 @@
             android:text="navigate native entrance"
             android:onClick="onNativeEntranceBtnClick"
             />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="navigate native example"
+            android:onClick="onNativeExampleBtnClick"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="media record"
+            android:onClick="onMediaRecordBtnClick"
+            />
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="banner test"
+            android:onClick="onBannerBtnClick"
+            />
+
 </LinearLayout>
