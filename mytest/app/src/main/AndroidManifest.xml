@@ -40,11 +40,43 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
                 <action android:name="android.intent.action.MAIN"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data
+                        android:host="test.jhf"
+                        android:path="/main"
+                        android:scheme="native" />
+            </intent-filter>
         </activity>
 
-        <activity android:name=".activity.MediaRecorderActivity"/>
+        <activity android:name=".activity.MediaRecorderActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data
+                        android:scheme="native"
+                        android:host="thirdsdk"
+                        android:path="/wedoctor/health"
+                        />
+            </intent-filter>
+        </activity>
 
-        <activity android:name=".activity.BannerActivity"/>
+        <activity android:name=".activity.BannerActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data
+                        android:scheme="native"
+                        android:host="thirdsdk"
+                        android:path="/lianren/health"
+                        />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".activity.TestActivity"
+                android:exported="true"
+                />
     </application>
 
 </manifest>

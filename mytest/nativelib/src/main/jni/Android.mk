@@ -43,6 +43,7 @@ LOCAL_SRC_FILES := src/AndroidJni.cpp \
 							src/example/transcode_aac.c \
 							src/example/transcoding.c \
 							src/example/examplemain.cpp \
+							src/Translate.cpp \
                            	src/FirstTest.cpp \
                            	src/MyNativeWindow.cpp \
 						   	src/PlayerEx.cpp \

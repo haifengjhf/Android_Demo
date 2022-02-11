@@ -16,6 +16,7 @@
 #include "AndroidJni.h"
 //#include "usermain/Player.h"
 #include "example/examplemain.h"
+#include "Translate.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,8 +90,12 @@ JNINativeMethod jniNativeMethod[] = {
                 "exampelExtractMVS",
                 "(Ljava/lang/String;)I",
                 (void*)example_of_extract_mvs
+        },
+        {
+            "translate",
+                    "(Ljava/lang/String;Ljava/lang/String;)I",
+                    (void*)&Translate::translate
         }
-
 };
 
 

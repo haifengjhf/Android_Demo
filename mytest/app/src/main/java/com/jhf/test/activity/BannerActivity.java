@@ -8,6 +8,8 @@ import com.jhf.test.adapter.BannerHolderCreator;
 import com.jhf.test.adapter.BannerRecycleAdapter;
 import com.jhf.test.data.BannerData;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -28,6 +30,22 @@ public class BannerActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_banner);
+
+        if(true){
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse("native://test.jhf/main"));
+            startActivity(intent);
+            finish();
+            return;
+        }
+//        if(true){
+//            Intent intent = new Intent();
+//            intent.setClassName("com.jhf.test.app","com.jhf.test.activity.MainActivity");
+//            startActivity(intent);
+//            finish();
+//            return;
+//        }
+
 
         List<BannerData> dataList = new ArrayList<>();
         dataList.add(new BannerData(R.drawable.iv_advisory_record));

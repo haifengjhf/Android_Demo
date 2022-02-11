@@ -13,7 +13,7 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "com.jhf.test"
+        applicationId "com.jhf.test.app"
         minSdkVersion 19
         targetSdkVersion 30
         versionCode 1
@@ -53,6 +53,8 @@ android {
 //        }
 //    }
 
+
+
 }
 
 dependencies {
@@ -71,5 +73,4 @@ dependencies {
     //banner
     compile 'com.github.rtugeek:materialbanner:1.0.2'
     implementation 'androidx.recyclerview:recyclerview:1.2.0'
-
 }

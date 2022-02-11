@@ -30,4 +30,6 @@ public class NativeEntrance {
 
     public native int exampelExtractMVS(String arg1);
 
+    public native int translate(String inFilePath,String outFilePath);
+
 }

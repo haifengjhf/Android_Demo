@@ -18,7 +18,7 @@ extern "C" {
 #include "libswscale/swscale.h"
 #include <libswresample/swresample.h>
 #include <libavformat/avformat.h>
-
+#include <libavfilter/avfilter.h>
 
 class PlayerEx {
 public:
@@ -89,6 +89,11 @@ protected:
     AVPixelFormat dstFormat = AV_PIX_FMT_RGBA;
     int channel_layout = AV_CH_LAYOUT_STEREO;
     AVSampleFormat outSampleFormat = AV_SAMPLE_FMT_S16;
+
+    //av filter
+    AVFilterGraph *filter_graph;
+    AVFilterContext *buffersink_ctx;
+    AVFilterContext *buffersrc_ctx;
 
     //视频同步音频,s
     double mCurSyncClock;

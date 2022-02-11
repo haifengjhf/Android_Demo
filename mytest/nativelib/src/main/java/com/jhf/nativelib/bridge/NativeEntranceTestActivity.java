@@ -84,6 +84,23 @@ public class NativeEntranceTestActivity extends AppCompatActivity {
 
     }
 
+    public void onTranslateBtnClick(View view){
+        String folderurl= this.getExternalCacheDir().getParent();
+        String urltext_input="sintel.mp4";
+
+        String inputurl=folderurl+"/"+urltext_input;
+        String outputurl=folderurl+"/"+"sintel_out.mp4";
+
+        Log.i("inputurl",inputurl);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mNativeEntrance.translate(inputurl,outputurl);
+            }
+        }).start();
+    }
+
     public void onRTSPPlayBtnClick(View view){
         new Thread(new Runnable() {
             @Override

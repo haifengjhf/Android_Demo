@@ -111,12 +111,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onMediaRecordBtnClick(View view){
-        Intent intent = new Intent(this, MediaRecorderActivity.class);
+//        Intent intent = new Intent(this, MediaRecorderActivity.class);
+//        startActivity(intent);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse("native://thirdsdk/wedoctor/health"));
         startActivity(intent);
     }
 
     public void onBannerBtnClick(View view){
-        Intent intent = new Intent(this, BannerActivity.class);
+//        Intent intent = new Intent(this, BannerActivity.class);
+//        startActivity(intent);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse("native://thirdsdk/lianren/health"));
         startActivity(intent);
     }
 
